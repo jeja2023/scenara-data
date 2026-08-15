@@ -1,0 +1,12 @@
+package: "@scenara/repository-contracts"
+version: "1.0.0"
+manifest_sha256: "4b070ce7e8d11f6c21641559c844b736482fa38e726b0778eb2d9c2834feecd6"
+source_repository: "scenara-contracts"
+produces:
+  - dataset-version-input
+consumes:
+  - hard-sample-handoff
+policy:
+  allow_source_imports: false
+  require_published_release: true
+  verify_digest: true

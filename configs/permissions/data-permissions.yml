@@ -1,0 +1,14 @@
+schema_version: "1.0"
+permissions:
+  - id: data.dataset.read
+    description: 读取数据集及版本元数据
+  - id: data.dataset.write
+    description: 创建和修改草稿数据集版本
+  - id: data.dataset.publish
+    description: 发布不可变数据集版本
+  - id: data.annotation.review
+    description: 复核和接受标注
+  - id: data.export
+    description: 导出已授权数据集版本
+  - id: data.lineage.read
+    description: 查询数据血缘

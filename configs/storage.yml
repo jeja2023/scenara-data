@@ -1,0 +1,15 @@
+schema_version: "1.0"
+postgresql:
+  logical_database: scenara_data
+redis:
+  logical_database: 1
+  role: cache_queue_lock_only
+object_storage:
+  provider: s3-compatible
+  baseline: minio
+  buckets:
+    datasets: scenara-datasets
+    artifacts: scenara-artifacts
+    backups: scenara-backups
+  immutable_published_objects: true
+  checksum: sha256
