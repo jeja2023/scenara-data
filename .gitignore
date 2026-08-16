@@ -8,3 +8,6 @@ dist/
 *.egg-info/
 .env
 runtime-state/
+node_modules/
+frontend/**/node_modules/
+frontend/**/dist/

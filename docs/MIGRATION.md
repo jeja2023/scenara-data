@@ -12,6 +12,10 @@
 6. Core 切换到远程 Data Client，旧表进入只读观察。
 7. 回滚窗口结束后退役旧写路径，禁止长期双写。
 
+## 执行方式
+
+Core 导出使用 [export_data_migration.py](/abs/path/D:/project/scenara/scripts/export_data_migration.py)，Data 导入使用 [import_data_migration.py](/abs/path/D:/project/scenara-data/scripts/import_data_migration.py)。当前导入入口保持为离线 CLI，避免暴露一个接收任意宿主机路径的 HTTP 导入接口；迁移包作用域、摘要、记录数和终态幂等都由导入器在本地逐项校验。
+
 ## 回滚
 
 切换前保留 Core 原写路径和只读快照。发生数量、摘要、权限、审计或延迟门禁失败时，停止增量消费，将 Core 路由恢复到旧 Adapter，并按事件游标记录待重放范围。不得在回滚时重编码业务 ID、修改状态名或覆盖已发布版本。

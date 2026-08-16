@@ -33,13 +33,18 @@ def manifest_ref() -> ObjectReference:
 
 
 def test_dataset_version_requires_legal_state_transitions() -> None:
-    validated = version().transition(DatasetVersionStatus.BUILDING).transition(DatasetVersionStatus.VALIDATED)
-    published = validated.transition(DatasetVersionStatus.PUBLISHED, manifest_ref=manifest_ref(), occurred_at=NOW)
+    ready = version().transition(DatasetVersionStatus.BUILDING).transition(DatasetVersionStatus.READY)
+    published = ready.transition(
+        DatasetVersionStatus.PUBLISHED,
+        manifest_ref=manifest_ref(),
+        occurred_at=NOW,
+        sample_count=1,
+    )
 
     assert published.status == DatasetVersionStatus.PUBLISHED
     assert published.manifest_ref == manifest_ref()
     with pytest.raises(ValueError, match="illegal dataset version transition"):
-        published.transition(DatasetVersionStatus.VALIDATED)
+        published.transition(DatasetVersionStatus.READY)
 
 
 def test_published_version_cannot_exist_without_manifest() -> None:

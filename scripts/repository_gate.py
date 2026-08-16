@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 import yaml
@@ -32,8 +34,15 @@ def main() -> int:
     problems = [f"missing required path: {path}" for path in REQUIRED_PATHS if not (ROOT / path).exists()]
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    if "当前成熟度：`seed`" not in readme:
-        problems.append("README must declare seed maturity")
+    config = (ROOT / "src/scenara_data/config.py").read_text(encoding="utf-8")
+    declared = re.search(r'DECLARED_MATURITY\s*=\s*"([a-z_]+)"', config)
+    maturity = declared.group(1) if declared else None
+    if maturity not in {"seed", "implemented", "qualified", "production_ready"}:
+        problems.append("config must declare a registered maturity")
+    if maturity == "production_ready":
+        problems.append("repository gate cannot approve production_ready without environment evidence")
+    if maturity is not None and f"当前成熟度：`{maturity}`" not in readme:
+        problems.append("README maturity does not match config DECLARED_MATURITY")
     if "责任团队：Scenara Data" not in readme:
         problems.append("README must declare the responsible team")
 
@@ -42,6 +51,25 @@ def main() -> int:
         problems.append("repository contract version must be pinned to 1.0.0")
     if lock.get("manifest_sha256") != "4b070ce7e8d11f6c21641559c844b736482fa38e726b0778eb2d9c2834feecd6":
         problems.append("repository contract manifest digest does not match the published release")
+
+    contracts_root = ROOT / "scenara-contracts"
+    if not contracts_root.is_dir():
+        contracts_root = ROOT.parent / "scenara-contracts"
+    if contracts_root.is_dir():
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "scripts" / "validate_repository_contracts.py"),
+                "--contracts-root",
+                str(contracts_root),
+            ],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            detail = (result.stdout + result.stderr).strip() or "repository contracts validation failed"
+            problems.append(detail)
 
     forbidden = re.compile(r"\b(?:from|import)\s+(?:scenara|scenara_model)\b")
     for path in (ROOT / "src").rglob("*.py"):

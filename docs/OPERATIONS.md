@@ -7,5 +7,7 @@
 - PostgreSQL：每日全量备份、持续 WAL 或等价增量保护；目标 RPO 15 分钟、RTO 4 小时。
 - 对象存储：开启版本、生命周期和不可变发布对象保护；每日清单与摘要巡检。
 - Redis：仅缓存、队列、锁和临时状态，不作为事实来源；允许从 PostgreSQL/Outbox 重建。
+- Outbox Worker：`scripts/run_outbox.py` 作为独立进程或 `data-outbox` 服务运行，负责把已提交事实对应的事件投递到 Core；投递失败进入退避和死信，不回滚业务事实。
+- 事件回传凭据：`SCENARA_DATA_CORE_EVENT_TOKEN` 必须与 Core 内部接收端点的服务令牌一致，不能与对外业务令牌复用。
 - 恢复演练：至少每季度恢复数据库、Manifest 和对象样本并校验数量、SHA-256、权限和审计链。
 - 告警：API 错误率、队列积压、发布失败、摘要不一致、备份失败、容量阈值和越权拒绝。

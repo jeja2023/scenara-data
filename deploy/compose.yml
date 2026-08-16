@@ -6,10 +6,18 @@ services:
     ports:
       - "8081:8081"
     environment:
+      SCENARA_DATA_RUNTIME_MODE: postgres
       SCENARA_DATA_DATABASE_URL: postgresql://scenara_data:${SCENARA_DATA_POSTGRES_PASSWORD:-data-dev-only}@postgres:5432/scenara_data
       SCENARA_DATA_REDIS_URL: redis://redis:6379/1
       SCENARA_DATA_S3_ENDPOINT_URL: http://minio:9000
+      SCENARA_DATA_S3_ACCESS_KEY_ID: ${SCENARA_DATA_MINIO_ROOT_USER:-scenara-data}
+      SCENARA_DATA_S3_SECRET_ACCESS_KEY: ${SCENARA_DATA_MINIO_ROOT_PASSWORD:-data-dev-only}
       SCENARA_DATA_DATASET_BUCKET: scenara-datasets
+      SCENARA_DATA_TRUSTED_SERVICE_TOKEN: ${SCENARA_DATA_TRUSTED_SERVICE_TOKEN:-scenara-data-compose-token}
+      SCENARA_DATA_CORE_EVENT_ENDPOINT: ${SCENARA_DATA_CORE_EVENT_ENDPOINT:-http://host.docker.internal:8080/internal/v1/data/events}
+      SCENARA_DATA_CORE_EVENT_TOKEN: ${SCENARA_DATA_CORE_EVENT_TOKEN:-scenara-data-compose-event-token}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
@@ -17,9 +25,55 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      data-migrate:
+        condition: service_completed_successfully
+
+  data-outbox:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    command: ["python", "scripts/run_outbox.py"]
+    environment:
+      SCENARA_DATA_RUNTIME_MODE: postgres
+      SCENARA_DATA_DATABASE_URL: postgresql://scenara_data:${SCENARA_DATA_POSTGRES_PASSWORD:-data-dev-only}@postgres:5432/scenara_data
+      SCENARA_DATA_REDIS_URL: redis://redis:6379/1
+      SCENARA_DATA_S3_ENDPOINT_URL: http://minio:9000
+      SCENARA_DATA_S3_ACCESS_KEY_ID: ${SCENARA_DATA_MINIO_ROOT_USER:-scenara-data}
+      SCENARA_DATA_S3_SECRET_ACCESS_KEY: ${SCENARA_DATA_MINIO_ROOT_PASSWORD:-data-dev-only}
+      SCENARA_DATA_TRUSTED_SERVICE_TOKEN: ${SCENARA_DATA_TRUSTED_SERVICE_TOKEN:-scenara-data-compose-token}
+      SCENARA_DATA_CORE_EVENT_ENDPOINT: ${SCENARA_DATA_CORE_EVENT_ENDPOINT:-http://host.docker.internal:8080/internal/v1/data/events}
+      SCENARA_DATA_CORE_EVENT_TOKEN: ${SCENARA_DATA_CORE_EVENT_TOKEN:-scenara-data-compose-event-token}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      data-migrate:
+        condition: service_completed_successfully
+
+  data-migrate:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    command: ["python", "scripts/migrate.py"]
+    environment:
+      SCENARA_DATA_DATABASE_URL: postgresql://scenara_data:${SCENARA_DATA_POSTGRES_PASSWORD:-data-dev-only}@postgres:5432/scenara_data
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   postgres:
     image: postgres:16-alpine
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_DB: scenara_data
       POSTGRES_USER: scenara_data
@@ -34,6 +88,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    ports:
+      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -42,6 +98,9 @@ services:
 
   minio:
     image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${SCENARA_DATA_MINIO_ROOT_USER:-scenara-data}
@@ -49,10 +108,29 @@ services:
     volumes:
       - scenara-data-minio:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/minio/health/live"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  minio-init:
+    image: minio/mc:latest
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - >-
+        mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
+        && mc mb --ignore-existing local/scenara-datasets
+        && mc mb --ignore-existing local/scenara-data-manifests
+        && mc mb --ignore-existing local/scenara-data-imports
+        && mc mb --ignore-existing local/scenara-data-exports
+        && mc mb --ignore-existing local/scenara-artifacts
+        && mc mb --ignore-existing local/scenara-backups
+    environment:
+      MINIO_ROOT_USER: ${SCENARA_DATA_MINIO_ROOT_USER:-scenara-data}
+      MINIO_ROOT_PASSWORD: ${SCENARA_DATA_MINIO_ROOT_PASSWORD:-data-dev-only}
+    depends_on:
+      minio:
+        condition: service_healthy
 
 volumes:
   scenara-data-postgres:

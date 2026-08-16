@@ -12,12 +12,46 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/checkout@v5
+        with:
+          repository: jeja2023/scenara
+          path: scenara-core
+      - uses: actions/checkout@v5
+        with:
+          repository: jeja2023/scenara-contracts
+          path: scenara-contracts
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
       - run: python -m pip install -e ".[dev]"
+      - run: python -m pip install cryptography
       - run: python -m ruff check src scripts tests
+      - run: python scripts/validate_repository_contracts.py --contracts-root ${{ github.workspace }}/scenara-contracts
       - run: python scripts/repository_gate.py
       - run: python -m pytest
+        env:
+          SCENARA_CORE_REPO: ${{ github.workspace }}/scenara-core
       - run: docker build -f deploy/Dockerfile -t scenara-data:ci .
+
+  integration-services:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e ".[dev,postgres,s3,redis,http]"
+      - name: Start integration services
+        run: docker compose -f deploy/compose.yml up -d --wait postgres redis minio
+      - name: Initialize object buckets
+        run: docker compose -f deploy/compose.yml run --rm minio-init
+      - name: Apply schema migrations
+        run: docker compose -f deploy/compose.yml run --rm data-migrate
+      - run: python -m pytest -m integration tests/test_integration_services.py
+        env:
+          SCENARA_RUN_INTEGRATION: "1"
+      - name: Stop integration services
+        if: always()
+        run: docker compose -f deploy/compose.yml down --volumes --remove-orphans

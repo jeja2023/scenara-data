@@ -7,7 +7,9 @@ WORKDIR /app
 
 COPY pyproject.toml README.md ./
 COPY src ./src
-RUN python -m pip install --no-cache-dir .
+COPY migrations ./migrations
+COPY scripts ./scripts
+RUN python -m pip install --no-cache-dir ".[postgres,s3,redis,http]"
 
 RUN useradd --create-home --shell /usr/sbin/nologin scenara_data \
     && chown -R scenara_data:scenara_data /app

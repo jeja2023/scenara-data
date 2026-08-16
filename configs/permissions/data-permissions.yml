@@ -1,14 +1,30 @@
 schema_version: "1.0"
 permissions:
+  - id: data.dataset.create
+    description: 创建数据集目录
   - id: data.dataset.read
     description: 读取数据集及版本元数据
-  - id: data.dataset.write
-    description: 创建和修改草稿数据集版本
+  - id: data.dataset.update
+    description: 修改数据集目录并构建草稿版本
   - id: data.dataset.publish
     description: 发布不可变数据集版本
+  - id: data.dataset.archive
+    description: 归档数据集或数据集版本
+  - id: data.sample.create
+    description: 创建或物化样本
+  - id: data.sample.read
+    description: 读取已授权样本
+  - id: data.annotation.create
+    description: 创建标注任务、标注和追加式修订
   - id: data.annotation.review
-    description: 复核和接受标注
-  - id: data.export
-    description: 导出已授权数据集版本
+    description: 复核和接受标注修订
+  - id: data.quality.run
+    description: 执行数据质量规则和质量运行
   - id: data.lineage.read
     description: 查询数据血缘
+  - id: data.import.execute
+    description: 执行数据或迁移包导入
+  - id: data.export.execute
+    description: 导出已授权数据集版本
+  - id: data.hard_sample.import
+    description: 接收 Core 已批准的难例清单
