@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { Database, Layers3, Plus, RefreshCw } from "@lucide/vue";
 
 import {
@@ -8,6 +8,8 @@ import {
   getDatasetVersionReference,
   listDatasetVersions,
   listDatasets,
+  publishDatasetVersion,
+  validateDatasetVersion,
   type DatasetRecord,
   type DatasetVersion,
   type DatasetVersionReference,
@@ -64,6 +66,11 @@ async function refresh(): Promise<void> {
   }
 }
 
+async function selectDataset(datasetId: string): Promise<void> {
+  selectedDatasetId.value = datasetId;
+  await loadVersions(datasetId);
+}
+
 async function loadVersions(datasetId: string): Promise<void> {
   if (!datasetId) {
     versions.value = [];
@@ -114,11 +121,21 @@ async function transition(
   saving.value = true;
   clearFeedback();
   try {
-    await api<DatasetVersion>(
-      `/internal/v1/dataset-versions/${encodeURIComponent(version.dataset_version_id)}/transition`,
-      { method: "POST", body: JSON.stringify({ status }) },
-    );
-    message.value = `版本已更新为 ${labelDatasetVersionStatus(status)}`;
+    let updatedStatus: DatasetVersion["status"] = status;
+    if (status === "ready") {
+      const response = await validateDatasetVersion(version.dataset_version_id);
+      updatedStatus = response.dataset_version.status;
+    } else if (status === "published") {
+      const response = await publishDatasetVersion(version.dataset_version_id);
+      updatedStatus = response.dataset_version.status;
+    } else {
+      const response = await api<DatasetVersion>(
+        `/internal/v1/dataset-versions/${encodeURIComponent(version.dataset_version_id)}/transition`,
+        { method: "POST", body: JSON.stringify({ status }) },
+      );
+      updatedStatus = response.status;
+    }
+    message.value = `版本已更新为 ${labelDatasetVersionStatus(updatedStatus)}`;
     await loadVersions(selectedDatasetId.value);
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : "状态切换失败";
@@ -126,10 +143,6 @@ async function transition(
     saving.value = false;
   }
 }
-
-watch(selectedDatasetId, async (datasetId) => {
-  if (datasetId) await loadVersions(datasetId);
-});
 
 onMounted(refresh);
 useRefresh(refresh);
@@ -160,7 +173,7 @@ useRefresh(refresh);
                 v-for="dataset in datasets"
                 :key="dataset.dataset_id"
                 :class="{ selected: dataset.dataset_id === selectedDatasetId }"
-                @click="selectedDatasetId = dataset.dataset_id"
+                @click="selectDataset(dataset.dataset_id)"
               >
                 <td>
                   <strong>{{ dataset.name }}</strong>
@@ -210,8 +223,8 @@ useRefresh(refresh);
                 <td>{{ formatTimestamp(version.created_at) }}</td>
                 <td>
                   <div class="table-actions">
-                    <button class="button secondary" :disabled="saving || version.status !== 'draft'" @click.stop="transition(version, 'building')">构建</button>
-                    <button class="button secondary" :disabled="saving || version.status === 'published'" @click.stop="transition(version, 'ready')">校验</button>
+                    <button class="button secondary" :disabled="saving || !['draft', 'failed'].includes(version.status)" @click.stop="transition(version, 'building')">构建</button>
+                    <button class="button secondary" :disabled="saving || version.status !== 'building'" @click.stop="transition(version, 'ready')">校验</button>
                     <button class="button primary" :disabled="saving || version.status !== 'ready'" @click.stop="transition(version, 'published')">发布</button>
                   </div>
                 </td>

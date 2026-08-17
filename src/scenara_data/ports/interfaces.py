@@ -34,7 +34,7 @@ from scenara_data.domain.models import (
 
 @dataclass(frozen=True, slots=True)
 class RequestContext:
-    """Core 签发并透传的身份上下文；Data 不保存用户、角色和 API Key 事实。"""
+    """Core 签发并透传的身份上下文；数据平台不保存用户、角色和 API 密钥事实。"""
 
     tenant_id: str
     project_id: str
@@ -347,7 +347,7 @@ class LockProvider(Protocol):
 
 
 class MigrationPackageSource(Protocol):
-    """Core 生成的迁移包读取端口；Data 不连接 Core 数据库（指南 13）。"""
+    """Core 生成的迁移包读取端口；数据平台不连接 Core 数据库（指南 13）。"""
 
     @property
     def package_name(self) -> str: ...

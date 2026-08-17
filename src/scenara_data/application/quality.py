@@ -1,4 +1,4 @@
-"""Data Quality 应用服务（指南 6.5、M5）。"""
+"""数据质量应用服务（指南 6.5、M5）。"""
 
 from __future__ import annotations
 

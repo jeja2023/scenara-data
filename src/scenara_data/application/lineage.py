@@ -1,4 +1,4 @@
-"""Data Lineage 应用服务（指南 6.5、M5）。"""
+"""数据血缘应用服务（指南 6.5、M5）。"""
 
 from __future__ import annotations
 

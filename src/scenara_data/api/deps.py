@@ -18,7 +18,7 @@ from scenara_data.ports.interfaces import RequestContext
 def get_container(request: Request) -> ApplicationContainer:
     container = getattr(request.app.state, "container", None)
     if container is None:  # pragma: no cover - 应用装配失败属于启动期错误
-        raise RuntimeError("application container is not configured")
+        raise RuntimeError("尚未配置应用容器")
     return container
 
 

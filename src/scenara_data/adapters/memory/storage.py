@@ -19,7 +19,7 @@ class PresignedUrlError(RuntimeError):
 
 
 class InMemoryObjectStorage:
-    """开发用 S3-compatible Provider 替身；保持 Provider 中立的同一端口语义。"""
+    """开发用兼容 S3 的对象存储替身；保持提供方中立的同一端口语义。"""
 
     def __init__(self, bucket: str = "scenara-datasets", *, signing_key: bytes | None = None) -> None:
         self._default_bucket = bucket
@@ -46,7 +46,7 @@ class InMemoryObjectStorage:
                 stored = self._objects[(existing.bucket, existing.key, existing.version)]
                 if stored == content and existing.content_type == content_type:
                     return existing
-                raise ValueError("immutable object already exists with different content")
+                raise ValueError("不可变对象已存在且内容不同")
             reference = ObjectReference(
                 bucket=target,
                 key=key,
@@ -63,7 +63,7 @@ class InMemoryObjectStorage:
         """登记 Core 通过对象引用授权的来源内容（开发环境替代预签名读取）。"""
         digest = f"sha256:{hashlib.sha256(content).hexdigest()}"
         if digest != reference.checksum or len(content) != reference.size_bytes:
-            raise ValueError("external object does not match its reference")
+            raise ValueError("外部对象与其引用不一致")
         with self._lock:
             self._objects[(reference.bucket, reference.key, reference.version)] = content
             self._references[(reference.bucket, reference.key)] = reference
@@ -74,12 +74,12 @@ class InMemoryObjectStorage:
             raise FileNotFoundError(f"{reference.bucket}/{reference.key}")
         digest = f"sha256:{hashlib.sha256(content).hexdigest()}"
         if digest != reference.checksum or len(content) != reference.size_bytes:
-            raise ValueError("object checksum or size mismatch")
+            raise ValueError("对象校验和或大小不匹配")
         return content
 
     def presign_read(self, reference: ObjectReference, expires_in_seconds: int) -> str:
         if expires_in_seconds <= 0:
-            raise ValueError("presigned URL expiry must be positive")
+            raise ValueError("预签名 URL 的有效期必须为正数")
         if (reference.bucket, reference.key) not in self._references:
             raise FileNotFoundError(f"{reference.bucket}/{reference.key}")
         expires_at = int(datetime.now(UTC).timestamp()) + expires_in_seconds

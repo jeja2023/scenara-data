@@ -9,6 +9,8 @@ import {
   Settings2,
 } from "@lucide/vue";
 
+const APP_TITLE = "景枢数据";
+
 const routes = [
   {
     path: "/",
@@ -16,7 +18,7 @@ const routes = [
     component: () => import("./views/OverviewView.vue"),
     meta: {
       title: "总览",
-      description: "数据平台运行状态、最新数据集和最近处理概览。",
+      description: "查看数据平台运行状态、最新数据集和最近处理概览。",
       icon: LayoutDashboard,
       section: "工作台",
       platform: "data",
@@ -28,7 +30,7 @@ const routes = [
     component: () => import("./views/DatasetsView.vue"),
     meta: {
       title: "数据集",
-      description: "创建、查看和推进数据集生命周期。",
+      description: "创建、查看并推进数据集生命周期。",
       icon: Database,
       section: "数据管理",
       platform: "data",
@@ -91,10 +93,9 @@ const router = createRouter({
 });
 
 router.afterEach((to) => {
-  const title = String(to.meta.title ?? "Scenara Data");
-  document.title = `${title} · Scenara Data`;
+  const title = String(to.meta.title ?? APP_TITLE);
+  document.title = `${title} · ${APP_TITLE}`;
 });
 
 export { routes };
 export default router;
-

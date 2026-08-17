@@ -35,7 +35,7 @@ def uuid7() -> UUID:
 def new_id(prefix: str, *, time_ordered: bool = True) -> str:
     """`<entity_prefix>_<uuid>` 形式的不透明业务 ID（规范 36）。"""
     if not prefix or not prefix.isalnum() or not prefix.islower():
-        raise ValueError("entity prefix must be lowercase alphanumeric")
+        raise ValueError("实体前缀只能包含小写字母和数字")
     value = uuid7() if time_ordered else uuid4()
     return f"{prefix}_{value.hex}"
 
@@ -137,4 +137,4 @@ def _dump(value: Any | None) -> dict[str, Any] | None:
         return value.model_dump(mode="json")
     if isinstance(value, dict):
         return value
-    raise TypeError("audit before/after must be a domain model or mapping")
+    raise TypeError("审计 before/after 必须是领域模型或映射")

@@ -34,7 +34,7 @@ PUBLISHED_STATES = {DatasetVersionStatus.PUBLISHED, DatasetVersionStatus.ARCHIVE
 
 
 class InMemoryDataRepository:
-    """Deterministic development adapter; never a production fact store."""
+    """行为确定的开发适配器，绝不能作为生产事实存储。"""
 
     def __init__(self) -> None:
         self._lock = RLock()
@@ -94,7 +94,7 @@ class InMemoryDataRepository:
     def register_transaction_participant(self, participant: object) -> None:
         """让内存适配器的辅助事实（审计、Outbox、幂等）共享回滚边界。"""
         if not hasattr(participant, "_transaction_snapshot") or not hasattr(participant, "_transaction_restore"):
-            raise TypeError("transaction participant must provide snapshot and restore hooks")
+            raise TypeError("事务参与者必须提供快照和恢复钩子")
         self._transaction_participants.append(participant)
 
     @contextmanager
@@ -170,7 +170,7 @@ class InMemoryDataRepository:
             "_access_grants": self._access_grants,
         }
 
-    # ---------------------------------------------------------------- Dataset
+    # ---------------------------------------------------------------- 数据集
 
     def add_dataset(self, value: Dataset) -> None:
         self._datasets.add(value, (value.tenant_id, value.project_id))
@@ -240,7 +240,7 @@ class InMemoryDataRepository:
             sort_key=lambda value: (value.created_at, value.grant_id),
         )
 
-    # ----------------------------------------------------------------- Sample
+    # ------------------------------------------------------------------ 样本
 
     def add_sample(self, value: Sample, created_by: str) -> None:
         with self._lock:
@@ -282,9 +282,9 @@ class InMemoryDataRepository:
                 raise KeyError(sample_id)
             version = self._versions.rows[dataset_version_id]
             if version.status != DatasetVersionStatus.BUILDING:
-                raise ValueError("dataset version sample membership is mutable only while building")
+                raise ValueError("只有构建中的数据集版本可以修改样本成员关系")
             if sample_id in members:
-                raise ValueError("duplicate version sample")
+                raise ValueError("数据集版本中存在重复样本")
             members.append(sample_id)
 
     def restore_sample_to_version(
@@ -307,7 +307,7 @@ class InMemoryDataRepository:
         members = self._version_samples.get(dataset_version_id, [])
         return [self.get_sample(item, organization_id, project_id) for item in sorted(members)]
 
-    # ------------------------------------------------------------- Annotation
+    # ------------------------------------------------------------------ 标注
 
     def add_annotation(self, value: Annotation, organization_id: str, project_id: str) -> None:
         self.get_sample(value.sample_id, organization_id, project_id)
@@ -446,7 +446,7 @@ class InMemoryDataRepository:
     ) -> AnnotationSnapshot:
         return self._annotation_snapshots.get(snapshot_id, (organization_id, project_id))
 
-    # ---------------------------------------------------------------- Quality
+    # ------------------------------------------------------------------ 质量
 
     def add_quality_rule(self, value: QualityRule, organization_id: str, project_id: str) -> None:
         self._quality_rules.add(value, (organization_id, project_id))
@@ -507,7 +507,7 @@ class InMemoryDataRepository:
     ) -> DataQualityReport:
         return self._quality_reports.get(report_id, (organization_id, project_id))
 
-    # ---------------------------------------------------------------- Lineage
+    # ------------------------------------------------------------------ 血缘
 
     def add_lineage_link(self, value: LineageLink, organization_id: str, project_id: str) -> None:
         self._lineage.add(value, (organization_id, project_id))
@@ -529,7 +529,7 @@ class InMemoryDataRepository:
     ) -> LineageSnapshot:
         return self._lineage_snapshots.get(snapshot_id, (organization_id, project_id))
 
-    # ------------------------------------------------------------ Hard Sample
+    # ------------------------------------------------------------------ 难例
 
     def add_hard_sample_import(
         self, value: HardSampleImport, organization_id: str, project_id: str
@@ -555,7 +555,7 @@ class InMemoryDataRepository:
         self._hard_sample_imports.get(value.import_id, (organization_id, project_id))
         self._hard_sample_imports.update(value)
 
-    # -------------------------------------------------------------- Migration
+    # ------------------------------------------------------------------ 迁移
 
     def add_migration_report(
         self, value: MigrationReport, organization_id: str, project_id: str
@@ -584,14 +584,13 @@ class InMemoryDataRepository:
 
 
 def _assert_version_mutable(previous: DatasetVersion, incoming: DatasetVersion) -> None:
-    """已发布版本只允许 published -> archived，且不可改动不可变字段。"""
+    """已发布版本只允许从 published 转换到 archived，且不可改动不可变字段。"""
     if previous.status not in PUBLISHED_STATES:
         return
     if previous.status == DatasetVersionStatus.ARCHIVED:
-        raise ValueError("archived dataset version is immutable")
+        raise ValueError("已归档数据集版本不可修改")
     frozen = ("manifest_ref", "manifest_sha256", "published_at", "sample_count", "version")
     if incoming.status != DatasetVersionStatus.ARCHIVED or any(
         getattr(previous, field) != getattr(incoming, field) for field in frozen
     ):
-        raise ValueError("published dataset version is immutable")
-
+        raise ValueError("已发布数据集版本不可修改")

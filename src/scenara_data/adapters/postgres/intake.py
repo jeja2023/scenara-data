@@ -1,4 +1,4 @@
-"""Hard Sample 承接、迁移报告、审计、Outbox 与幂等的 PostgreSQL 实现。"""
+"""难例承接、迁移报告、审计、Outbox 与幂等的 PostgreSQL 实现。"""
 
 from __future__ import annotations
 

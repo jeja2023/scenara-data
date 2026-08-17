@@ -2,17 +2,20 @@
 import { computed, onMounted, ref } from "vue";
 import { Activity, Database, Layers3, RefreshCw } from "@lucide/vue";
 
-import { fetchReadyz, listDatasetVersions, listDatasets } from "../api";
+import { fetchHealth, fetchReadyz, listDatasetVersions, listDatasets } from "../api";
 import {
   formatNumber,
   formatTimestamp,
   labelDatasetVersionStatus,
   labelDatasetStatus,
+  labelReadinessCheck,
+  labelReadinessState,
 } from "../labels";
 import type { DatasetRecord, DatasetVersion, Page, ReadyzResponse } from "../types";
 import { useRefresh } from "../composables/useRefresh";
 
 const readyz = ref<ReadyzResponse | null>(null);
+const readinessState = ref<"ready" | "not_ready" | "offline">("offline");
 const datasets = ref<DatasetRecord[]>([]);
 const publishedVersions = ref<DatasetVersion[]>([]);
 const loading = ref(false);
@@ -29,7 +32,7 @@ const stats = computed(() => [
   },
   {
     label: "后端状态",
-    value: readyz.value?.status === "ready" ? "就绪" : readyz.value ? "待检查" : "离线",
+    value: labelReadinessState(readinessState.value),
     hint: readyz.value?.timestamp ? formatTimestamp(readyz.value.timestamp) : "尚未刷新",
   },
   {
@@ -42,15 +45,45 @@ const stats = computed(() => [
 async function refresh(): Promise<void> {
   loading.value = true;
   error.value = "";
+  datasets.value = [];
+  publishedVersions.value = [];
+  readyz.value = null;
+  readinessState.value = "offline";
   try {
-    const [ready, datasetPage] = await Promise.all([
+    const errors: string[] = [];
+    let nextReadyz: ReadyzResponse | null = null;
+    let nextState: "ready" | "not_ready" | "offline" = "offline";
+    const [readyResult, healthResult, datasetResult] = await Promise.allSettled([
       fetchReadyz(),
+      fetchHealth(),
       listDatasets(),
     ]);
-    readyz.value = ready;
-    datasets.value = datasetPage.items;
+    if (readyResult.status === "fulfilled") {
+      nextReadyz = readyResult.value;
+      nextState = readyResult.value.status === "ready" ? "ready" : "not_ready";
+    } else {
+      errors.push(readyResult.reason instanceof Error ? readyResult.reason.message : "就绪探针失败");
+    }
+    if (healthResult.status === "fulfilled" && !nextReadyz) {
+      nextReadyz = {
+        status: "not_ready",
+        service: healthResult.value.service,
+        runtime_mode: healthResult.value.runtime_mode,
+        checks: {},
+        timestamp: healthResult.value.timestamp,
+      };
+      nextState = "not_ready";
+    } else if (healthResult.status === "rejected" && !nextReadyz) {
+      nextState = "offline";
+      errors.push(healthResult.reason instanceof Error ? healthResult.reason.message : "健康探针失败");
+    }
+    if (datasetResult.status === "fulfilled") {
+      datasets.value = datasetResult.value.items;
+    } else {
+      errors.push(datasetResult.reason instanceof Error ? datasetResult.reason.message : "数据集加载失败");
+    }
     const versionPages = await Promise.all(
-      datasetPage.items.slice(0, 8).map((dataset) =>
+      datasets.value.slice(0, 8).map((dataset) =>
         listDatasetVersions(dataset.dataset_id).catch(() => ({
           items: [],
           total: 0,
@@ -63,6 +96,11 @@ async function refresh(): Promise<void> {
       .filter((item) => item.status === "published")
       .sort((left, right) => String(right.created_at).localeCompare(String(left.created_at)))
       .slice(0, 12);
+    readyz.value = nextReadyz;
+    readinessState.value = nextState;
+    if (errors.length) {
+      error.value = errors.join("；");
+    }
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : "总览加载失败";
   } finally {
@@ -78,7 +116,7 @@ useRefresh(refresh);
   <section class="page overview-page">
     <div class="hero-band panel">
       <div>
-        <p class="eyebrow">Scenara Data · 统一门户接入</p>
+        <p class="eyebrow">景枢数据 · 统一门户接入</p>
         <h2>数据管理工作台</h2>
         <p class="hero-copy">
           以统一主题、统一身份和独立部署前端呈现数据资产、数据集、版本、难例和运维状态。
@@ -139,12 +177,12 @@ useRefresh(refresh);
         <div class="panel-header">
           <h3><Activity :size="18" />就绪检查</h3>
           <span class="badge" :class="readyz?.status === 'ready' ? 'active' : 'paused'">
-            {{ readyz?.status === 'ready' ? '已就绪' : '待就绪' }}
+            {{ labelReadinessState(readyz?.status === 'ready' ? 'ready' : (readyz ? 'not_ready' : 'offline')) }}
           </span>
         </div>
         <div class="panel-body checklist">
           <div v-for="[key, ok] in readyChecks" :key="key" class="check-row">
-            <span>{{ key }}</span>
+            <span>{{ labelReadinessCheck(key) }}</span>
             <strong :class="ok ? 'ok' : 'warn'">{{ ok ? '通过' : '失败' }}</strong>
           </div>
           <p class="muted tiny">{{ readyz?.timestamp ? `最近检查：${formatTimestamp(readyz.timestamp)}` : '尚未执行检查' }}</p>

@@ -86,6 +86,19 @@ def object_reference(content: bytes, *, key: str) -> ObjectReference:
     )
 
 
+@pytest.mark.asyncio
+async def test_request_validation_error_messages_are_localized(client: ApiClient) -> None:
+    response = await client.post(
+        "/internal/v1/datasets",
+        headers=headers(idempotency_key="localized-validation"),
+        json={"name": ""},
+    )
+
+    assert response.status_code == 422
+    violations = response.json()["error"]["details"]["violations"]
+    assert any(item["message"] == "字符串长度不足" for item in violations)
+
+
 async def create_active_dataset(client: ApiClient, dataset_id: str) -> None:
     created = await client.post(
         "/internal/v1/datasets",

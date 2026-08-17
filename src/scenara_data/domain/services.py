@@ -45,7 +45,7 @@ def sha256_of(content: bytes) -> str:
 
 def rfc3339(moment: datetime) -> str:
     if moment.tzinfo is None:
-        raise ValueError("timestamps must include a timezone")
+        raise ValueError("时间戳必须包含时区")
     return moment.isoformat().replace("+00:00", "Z")
 
 
@@ -77,11 +77,11 @@ def build_manifest_payload(
     lineage_snapshot_id: str | None = None,
     annotation_snapshot_id: str | None = None,
 ) -> dict[str, Any]:
-    """构造不可变 Manifest 文档；样本按 sample_id 排序保证摘要稳定。"""
+    """构造不可变清单文档；样本按 sample_id 排序保证摘要稳定。"""
     ordered = sorted(samples, key=lambda item: item.sample_id)
     missing = [sample.sample_id for sample in ordered if sample.sample_id not in materialized]
     if missing:
-        raise ValueError(f"manifest requires materialized content for samples: {missing}")
+        raise ValueError(f"清单要求样本具有已物化内容：{missing}")
     annotations = frozen_annotations or {}
     return {
         "schema_version": MANIFEST_SCHEMA_VERSION,
@@ -132,18 +132,18 @@ def annotation_snapshot_checksum(entries: Iterable[tuple[str, str]]) -> str:
 
 
 def map_core_dataset_status(value: str) -> DatasetStatus:
-    """Core 旧状态到 Data 状态的显式映射；未登记状态必须失败而不是静默兼容。"""
+    """Core 旧状态到数据平台状态的显式映射；未登记状态必须失败而不是静默兼容。"""
     try:
         return CORE_DATASET_STATUS_MAP[value.strip().lower()]
     except KeyError as exc:
-        raise ValueError(f"unmapped core dataset status: {value}") from exc
+        raise ValueError(f"未映射的 Core 数据集状态：{value}") from exc
 
 
 def map_core_dataset_version_status(value: str) -> DatasetVersionStatus:
     try:
         return CORE_DATASET_VERSION_STATUS_MAP[value.strip().lower()]
     except KeyError as exc:
-        raise ValueError(f"unmapped core dataset version status: {value}") from exc
+        raise ValueError(f"未映射的 Core 数据集版本状态：{value}") from exc
 
 
 def default_quality_rules() -> tuple[QualityRule, ...]:
@@ -244,7 +244,7 @@ def evaluate_quality_rules(
                 QualityCheck(
                     check_id=rule.rule_id,
                     status=QualityStatus.PASSED if passed else QualityStatus.FAILED,
-                    message=("必需 split 齐备" if passed else f"缺少 split：{missing}"),
+                    message=("必需的数据分割齐备" if passed else f"缺少数据分割：{missing}"),
                     measured_value=json.dumps(present, sort_keys=True),
                 )
             )

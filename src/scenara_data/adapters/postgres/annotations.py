@@ -1,4 +1,4 @@
-"""Annotation、修订、任务、分派、复核、服务商与快照的 PostgreSQL 实现。"""
+"""标注、修订、任务、分派、复核、服务商与快照的 PostgreSQL 实现。"""
 
 from __future__ import annotations
 
@@ -378,4 +378,3 @@ class AnnotationSqlMixin(SqlSupport):
         if row is None:
             raise KeyError(snapshot_id)
         return AnnotationSnapshot.model_validate(row["payload"])
-

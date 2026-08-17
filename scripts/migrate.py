@@ -14,7 +14,7 @@ MIGRATIONS = ROOT / "migrations"
 def database_url() -> str:
     value = os.getenv("SCENARA_DATA_DATABASE_URL")
     if not value:
-        raise RuntimeError("SCENARA_DATA_DATABASE_URL is required")
+        raise RuntimeError("必须配置 SCENARA_DATA_DATABASE_URL")
     return value
 
 
@@ -43,7 +43,7 @@ def apply_migrations() -> None:
             previous = cursor.fetchone()
             if previous:
                 if previous[0] != sha256:
-                    raise RuntimeError(f"applied migration {version} has changed")
+                    raise RuntimeError(f"已应用的迁移 {version} 发生变化")
                 continue
             cursor.execute(content.decode("utf-8"))
             cursor.execute(
@@ -56,19 +56,19 @@ def apply_migrations() -> None:
 def rollback(version: str) -> None:
     down_candidates = sorted(MIGRATIONS.glob(f"{version}_*.down.sql"))
     if len(down_candidates) != 1:
-        raise RuntimeError(f"rollback migration for {version} was not found")
+        raise RuntimeError(f"未找到迁移 {version} 的回滚脚本")
     with psycopg.connect(database_url()) as connection, connection.cursor() as cursor:
         cursor.execute("SELECT version FROM data_schema_migrations ORDER BY version DESC LIMIT 1")
         latest = cursor.fetchone()
         if latest is None or latest[0] != version:
-            raise RuntimeError("only the latest applied migration can be rolled back")
+            raise RuntimeError("只能回滚最后一个已应用迁移")
         cursor.execute(down_candidates[0].read_text(encoding="utf-8"))
         cursor.execute("DELETE FROM data_schema_migrations WHERE version = %s", (version,))
         connection.commit()
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Apply or roll back Scenara Data migrations")
+    parser = argparse.ArgumentParser(description="应用或回滚景枢数据数据库迁移")
     parser.add_argument("--rollback", metavar="VERSION")
     arguments = parser.parse_args()
     if arguments.rollback:

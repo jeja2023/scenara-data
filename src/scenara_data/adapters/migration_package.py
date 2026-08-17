@@ -19,7 +19,7 @@ def _validate_name(name: str) -> str:
         or ":" in name
         or any(part in {"", ".", ".."} for part in parts)
     ):
-        raise ValueError(f"unsafe migration package entry: {name}")
+        raise ValueError(f"迁移包包含不安全条目：{name}")
     return name
 
 
@@ -29,7 +29,7 @@ class FilesystemMigrationPackage:
     def __init__(self, root: Path) -> None:
         resolved = Path(root).resolve()
         if not resolved.is_dir():
-            raise NotADirectoryError(f"migration package directory not found: {resolved}")
+            raise NotADirectoryError(f"未找到迁移包目录：{resolved}")
         self._root = resolved
 
     @property
@@ -64,7 +64,7 @@ class FilesystemMigrationPackage:
     def _resolve(self, name: str) -> Path:
         candidate = (self._root / _validate_name(name)).resolve()
         if not candidate.is_relative_to(self._root):
-            raise ValueError(f"migration package entry escapes the package root: {name}")
+            raise ValueError(f"迁移包条目越过包根目录：{name}")
         return candidate
 
 

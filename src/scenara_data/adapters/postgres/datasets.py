@@ -1,4 +1,4 @@
-"""Dataset、Dataset Version 与访问授权的 PostgreSQL 实现。"""
+"""数据集、数据集版本与访问授权的 PostgreSQL 实现。"""
 
 from __future__ import annotations
 

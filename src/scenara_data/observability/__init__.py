@@ -1,4 +1,4 @@
-"""可观测性：结构化日志、请求上下文和 Provider 中立指标。"""
+"""可观测性：结构化日志、请求上下文和提供方中立指标。"""
 
 from __future__ import annotations
 

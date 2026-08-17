@@ -28,12 +28,12 @@ class Table[T]:
         identity = self.key(value)
         with self.lock:
             if identity in self.rows:
-                raise ValueError(f"duplicate {self.name}: {identity}")
+                raise ValueError(f"{self.name} 主键重复：{identity}")
             for extractor in self.unique:
                 candidate = extractor(value)
                 for existing in self.rows.values():
                     if extractor(existing) == candidate:
-                        raise ValueError(f"duplicate {self.name} unique key: {candidate}")
+                        raise ValueError(f"{self.name} 唯一键重复：{candidate}")
             self.rows[identity] = value
             self.scopes[identity] = scope
 

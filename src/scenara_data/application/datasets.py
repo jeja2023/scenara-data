@@ -90,7 +90,7 @@ class DatasetService(ApplicationService):
         self._manifest_bucket = manifest_bucket or dataset_bucket
         self._access_grant_max_ttl_seconds = access_grant_max_ttl_seconds
 
-    # ---------------------------------------------------------------- Dataset
+    # ---------------------------------------------------------------- 数据集
 
     @transactional
     def create_dataset(
@@ -165,7 +165,7 @@ class DatasetService(ApplicationService):
             elif target_status in {None, current.status}:
                 updated = current.model_copy(update={"updated_at": occurred_at})
             else:
-                raise ValueError(f"illegal dataset transition: {current.status} -> {target_status}")
+                raise ValueError("非法的数据集状态转换")
         except ValueError as exc:
             raise InvalidStateError(str(exc)) from exc
         changes: dict[str, Any] = {"updated_at": occurred_at}
@@ -205,7 +205,7 @@ class DatasetService(ApplicationService):
         except KeyError as exc:
             raise ResourceNotFoundError("dataset", dataset_id) from exc
 
-    # -------------------------------------------------------- Dataset Version
+    # ------------------------------------------------------------ 数据集版本
 
     @transactional
     def create_dataset_version(
@@ -219,7 +219,7 @@ class DatasetService(ApplicationService):
         self._require(context, "data.dataset.update")
         dataset = self.require_dataset(dataset_id, context)
         if dataset.status != DatasetStatus.ACTIVE:
-            raise InvalidStateError("只有 active 数据集可以创建新版本")
+            raise InvalidStateError("只有启用状态的数据集可以创建新版本")
         value = DatasetVersion(
             dataset_version_id=dataset_version_id or new_id("dsv"),
             dataset_id=dataset_id,
@@ -294,7 +294,7 @@ class DatasetService(ApplicationService):
         self._require(context, "data.dataset.update")
         version = self.require_version(dataset_version_id, context)
         if version.status != DatasetVersionStatus.BUILDING:
-            raise InvalidStateError("只有 building 状态的数据集版本可以添加样本")
+            raise InvalidStateError("只有构建中的数据集版本可以添加样本")
         try:
             self._samples.get_sample(sample_id, context.organization_id, context.project_id)
         except KeyError as exc:
@@ -321,11 +321,11 @@ class DatasetService(ApplicationService):
     def validate_dataset_version(
         self, dataset_version_id: str, context: RequestContext, *, rule_ids: tuple[str, ...] = ()
     ) -> tuple[DatasetVersion, DataQualityReport]:
-        """执行质量运行并把 building 推进到 ready；质量失败推进到 failed。"""
+        """执行质量运行并把构建中状态推进到就绪状态；质量失败则推进到失败状态。"""
         self._require(context, "data.quality.run")
         current = self.require_version(dataset_version_id, context)
         if current.status != DatasetVersionStatus.BUILDING:
-            raise InvalidStateError("只有 building 状态的数据集版本可以验证")
+            raise InvalidStateError("只有构建中的数据集版本可以验证")
         _, report = self._quality.run_quality(dataset_version_id, context, rule_ids=rule_ids)
         if report.status == QualityStatus.FAILED:
             failed = self._apply_transition(
@@ -345,7 +345,7 @@ class DatasetService(ApplicationService):
                     "quality_report_id": report.report_id,
                 },
             )
-            # 质量运行本身已完成，只是未通过发布门禁。返回 failed 版本和持久化报告，
+            # 质量运行本身已完成，只是未通过发布门禁。返回失败版本和持久化报告，
             # 让调用方能够查询问题并创建新的构建版本；不能抛异常回滚审计、报告和事件。
             return failed, report
         ready = self._apply_transition(
@@ -373,7 +373,7 @@ class DatasetService(ApplicationService):
         if current.status in {DatasetVersionStatus.PUBLISHED, DatasetVersionStatus.ARCHIVED}:
             raise ImmutableResourceError(dataset_version_id)
         if current.status != DatasetVersionStatus.READY:
-            raise InvalidStateError("只有 ready 状态的数据集版本可以发布")
+            raise InvalidStateError("只有已就绪的数据集版本可以发布")
         if current.quality_report_id is None:
             raise InvalidStateError("发布前必须绑定质量报告")
         samples = self._samples.list_version_samples(
@@ -483,7 +483,7 @@ class DatasetService(ApplicationService):
         self._require(context, "data.dataset.archive")
         current = self.require_version(dataset_version_id, context)
         if current.status != DatasetVersionStatus.PUBLISHED:
-            raise InvalidStateError("只有 published 状态的数据集版本可以归档")
+            raise InvalidStateError("只有已发布的数据集版本可以归档")
         occurred_at = self._clock()
         try:
             archived = current.transition(DatasetVersionStatus.ARCHIVED, occurred_at=occurred_at)
@@ -506,14 +506,14 @@ class DatasetService(ApplicationService):
         )
         return archived
 
-    # -------------------------------------------------------- 对 Model 输出
+    # ---------------------------------------------------------- 对模型平台输出
 
     def dataset_version_reference(self, dataset_version_id: str, context: RequestContext) -> dict[str, Any]:
-        """`dataset-version-input` 契约：不可变 Manifest、摘要、授权和血缘信息。"""
+        """`dataset-version-input` 契约：不可变清单、摘要、授权和血缘信息。"""
         self._require(context, "data.dataset.read")
         value = self.require_version(dataset_version_id, context)
         if value.status != DatasetVersionStatus.PUBLISHED or value.manifest_ref is None:
-            raise InvalidStateError("只有 published 状态的数据集版本可以作为训练输入")
+            raise InvalidStateError("只有已发布的数据集版本可以作为训练输入")
         grants = self._datasets.list_access_grants(
             dataset_version_id, context.organization_id, context.project_id
         )
@@ -523,9 +523,9 @@ class DatasetService(ApplicationService):
             key=lambda grant: (grant.created_at, grant.grant_id),
         )
         if not active_grants:
-            raise InvalidStateError("数据集版本尚未签发有效的 Model 访问授权")
+            raise InvalidStateError("数据集版本尚未签发有效的模型访问授权")
         if value.lineage_snapshot_id is None or value.published_at is None or value.manifest_sha256 is None:
-            raise InvalidStateError("发布版本缺少不可变 Manifest 或血缘快照")
+            raise InvalidStateError("发布版本缺少不可变清单或血缘快照")
         lineage_snapshot = self._lineage.get_snapshot(value.lineage_snapshot_id, context)
         lineage_ref = self._object_storage.put_immutable(
             f"datasets/{value.dataset_id}/{value.version}/lineage-snapshot.json",
@@ -550,7 +550,7 @@ class DatasetService(ApplicationService):
         self._require(context, "data.dataset.read")
         value = self.require_version(dataset_version_id, context)
         if value.manifest_ref is None:
-            raise InvalidStateError("数据集版本尚未生成不可变 Manifest")
+            raise InvalidStateError("数据集版本尚未生成不可变清单")
         content = self._object_storage.read_verified(value.manifest_ref)
         return json.loads(content.decode("utf-8"))
 
@@ -567,7 +567,7 @@ class DatasetService(ApplicationService):
         self._require(context, "data.export.execute")
         value = self.require_version(dataset_version_id, context)
         if value.status != DatasetVersionStatus.PUBLISHED or value.manifest_ref is None:
-            raise InvalidStateError("只有 published 状态的数据集版本可以授权访问")
+            raise InvalidStateError("只有已发布的数据集版本可以授权访问")
         unknown = sorted(set(permissions) - GRANT_PERMISSIONS)
         if unknown or not permissions:
             raise InputValidationError(
@@ -632,7 +632,7 @@ class DatasetService(ApplicationService):
     def _materialize_samples(
         self, version: DatasetVersion, samples: list[Sample]
     ) -> dict[str, ObjectReference]:
-        """把样本内容复制到 Data 自有不可变对象空间并验证 SHA-256（指南 9）。"""
+        """把样本内容复制到数据平台自有不可变对象空间并验证 SHA-256（指南 9）。"""
         materialized: dict[str, ObjectReference] = {}
         for sample in samples:
             if sample.content_ref is not None:

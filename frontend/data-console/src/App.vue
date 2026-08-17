@@ -14,6 +14,7 @@ import { RouterLink, RouterView, useRoute } from "vue-router";
 
 import { fetchHealth, fetchReadyz, loadConnection, saveConnection, type ConnectionSettings } from "./api";
 import { REFRESH_EVENT } from "./composables/useRefresh";
+import { labelPrincipalType, labelReadinessState } from "./labels";
 import { routes } from "./router";
 
 type NavRoute = {
@@ -31,7 +32,7 @@ type NavRoute = {
 const route = useRoute();
 const navOpen = ref(false);
 const settingsOpen = ref(false);
-const readyState = ref<"checking" | "ready" | "offline">("checking");
+const readyState = ref<"checking" | "ready" | "offline" | "not_ready">("checking");
 const readyChecks = ref<Record<string, boolean>>({});
 const readyMessage = ref("正在检查后端状态");
 const connection = ref<ConnectionSettings>(loadConnection());
@@ -52,7 +53,7 @@ const routeMeta = computed(
   () => route.meta as { title?: string; description?: string; platform?: string },
 );
 
-const pageTitle = computed(() => String(routeMeta.value.title ?? "Scenara Data"));
+const pageTitle = computed(() => String(routeMeta.value.title ?? "景枢数据"));
 const pageDescription = computed(() => String(routeMeta.value.description ?? ""));
 
 const platform = computed(() => String(routeMeta.value.platform ?? "data"));
@@ -68,7 +69,8 @@ function applySettings(): void {
   saveConnection(next);
   connection.value = next;
   settingsOpen.value = false;
-  void checkReadyz();
+  window.dispatchEvent(new CustomEvent(REFRESH_EVENT));
+  void probeConnection(next);
 }
 
 function triggerRefresh(): void {
@@ -76,18 +78,34 @@ function triggerRefresh(): void {
   void checkReadyz();
 }
 
-async function checkReadyz(): Promise<void> {
+async function probeConnection(source: ConnectionSettings): Promise<void> {
   readyState.value = "checking";
-  try {
-    const [probe, health] = await Promise.all([fetchReadyz(), fetchHealth()]);
-    readyChecks.value = probe.checks;
-    readyState.value = probe.status === "ready" ? "ready" : "offline";
-    readyMessage.value = health.status === "ok" ? "后端可访问" : "后端依赖未完全就绪";
-  } catch {
-    readyState.value = "offline";
+  const [probeResult, healthResult] = await Promise.allSettled([
+    fetchReadyz(source),
+    fetchHealth(source),
+  ]);
+  if (probeResult.status === "fulfilled") {
+    readyChecks.value = probeResult.value.checks;
+    readyState.value = probeResult.value.status === "ready" ? "ready" : "not_ready";
+  } else {
     readyChecks.value = {};
+    readyState.value = healthResult.status === "fulfilled" ? "not_ready" : "offline";
+  }
+  if (healthResult.status === "fulfilled") {
+    readyMessage.value = healthResult.value.status === "ok" ? "后端可访问" : "后端依赖未完全就绪";
+  } else if (probeResult.status === "fulfilled") {
+    readyMessage.value = "就绪探针可用，健康探针未响应";
+  } else {
     readyMessage.value = "无法连接到后端";
   }
+}
+
+function checkReadyz(): void {
+  void probeConnection(connection.value);
+}
+
+function testConnection(): void {
+  void probeConnection({ ...draft, apiBase: draft.apiBase.replace(/\/$/, "") });
 }
 
 function closeNav(): void {
@@ -121,9 +139,9 @@ watch(
       </button>
 
       <div class="brand-lockup">
-        <div class="brand-mark">D</div>
+        <div class="brand-mark">数</div>
         <div>
-          <strong>Scenara Data</strong>
+          <strong>景枢数据</strong>
           <span>{{ connection.apiBase || '本地连接' }}</span>
         </div>
       </div>
@@ -139,8 +157,8 @@ watch(
         <button class="icon-button" title="刷新" @click="triggerRefresh">
           <RefreshCw :size="18" />
         </button>
-        <button class="connection" :class="readyState" @click="checkReadyz">
-          <span></span>{{ readyState === "ready" ? "已就绪" : readyState === "offline" ? "离线" : "检查中" }}
+        <button class="connection" :class="readyState" :title="labelReadinessState(readyState)" @click="checkReadyz">
+          <span></span>{{ labelReadinessState(readyState) }}
         </button>
         <button class="icon-button" title="连接设置" @click="openSettings">
           <Settings2 :size="18" />
@@ -150,9 +168,9 @@ watch(
 
     <aside class="sidebar" :class="{ open: navOpen }">
       <div class="sidebar-brand">
-        <div class="brand-mark large">D</div>
+        <div class="brand-mark large">数</div>
         <div>
-          <strong>Scenara Data</strong>
+          <strong>景枢数据</strong>
           <span>{{ connection.tenantId }}/{{ connection.projectId }}</span>
         </div>
         <button class="icon-button sidebar-close" title="关闭导航" @click="closeNav">
@@ -176,7 +194,7 @@ watch(
       </nav>
 
       <div class="sidebar-footer">
-        <span>v0.1.2</span><i></i><span>{{ readyMessage }}</span>
+        <span>v0.1.4</span><i></i><span>{{ readyMessage }}</span>
       </div>
     </aside>
 
@@ -193,7 +211,7 @@ watch(
             <h2>连接设置</h2>
             <p>本地浏览器会话</p>
           </div>
-          <button class="icon-button" title="关闭" @click="settingsOpen = false">
+          <button class="icon-button" type="button" title="关闭" @click="settingsOpen = false">
             <X :size="18" />
           </button>
         </div>
@@ -218,8 +236,8 @@ watch(
           <label>
             <span>主体类型</span>
             <select v-model="draft.principalType">
-              <option value="user">user</option>
-              <option value="service_account">service_account</option>
+              <option value="user">{{ labelPrincipalType("user") }}</option>
+              <option value="service_account">{{ labelPrincipalType("service_account") }}</option>
             </select>
           </label>
           <label class="span-2">
@@ -241,7 +259,7 @@ watch(
         </div>
 
         <div class="modal-actions">
-          <button type="button" class="button secondary" @click="checkReadyz">测试</button>
+          <button type="button" class="button secondary" @click="testConnection">测试</button>
           <button class="button primary" type="submit">应用</button>
         </div>
       </form>

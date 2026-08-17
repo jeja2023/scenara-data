@@ -15,7 +15,7 @@ from scenara_data import __version__
 from scenara_data.api.deps import ContainerDep
 from scenara_data.observability.logging import utc_rfc3339
 
-router = APIRouter(tags=["operations"])
+router = APIRouter(tags=["运维"])
 
 
 def _liveness(container: ContainerDep) -> dict[str, str]:

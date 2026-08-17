@@ -1,4 +1,4 @@
-"""Sample 与版本样本成员关系的 PostgreSQL 实现。"""
+"""样本与版本样本成员关系的 PostgreSQL 实现。"""
 
 from __future__ import annotations
 

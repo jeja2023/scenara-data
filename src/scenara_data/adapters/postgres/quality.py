@@ -1,4 +1,4 @@
-"""Quality 与 Lineage 的 PostgreSQL 实现。"""
+"""数据质量与数据血缘的 PostgreSQL 实现。"""
 
 from __future__ import annotations
 

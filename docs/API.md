@@ -1,6 +1,6 @@
 # API 文档
 
-当前 `implemented` 版本提供内部业务 API 和运维探针。公共 `/api/v1/` 仍由 Core 网关代理，Data 只暴露 `/internal/v1/`。
+当前 `implemented` 版本为 `0.1.4`，提供内部业务 API 和运维探针。公共 `/api/v1/` 仍由 Core 网关代理，数据平台只暴露 `/internal/v1/`。
 
 | 方法 | 路径 | 认证 | 用途 |
 | --- | --- | --- | --- |
@@ -8,7 +8,7 @@
 | GET | `/readyz` | 无 | PostgreSQL/对象存储真实就绪检查 |
 | GET | `/metrics` | 无 | Prometheus 指标 |
 
-所有 `/internal/v1/` 业务写接口都要求 Core 透传的身份上下文和 `Idempotency-Key`。核心路径包括：
+所有 `/internal/v1/` 业务写接口都要求 Core 平台透传的身份上下文和 `Idempotency-Key`。核心路径包括：
 
 ```text
 POST/GET/PATCH /internal/v1/datasets
@@ -20,6 +20,8 @@ POST /internal/v1/annotation-tasks
 POST /internal/v1/hard-sample-manifests
 ```
 
-Data 到 Core 的审计/事件回传不复用上述业务 API。`data-outbox` 通过独立的 `SCENARA_DATA_CORE_EVENT_ENDPOINT` 和 `SCENARA_DATA_CORE_EVENT_TOKEN` 把正式事件信封投递到 Core 的内部接收端点；投递失败进入 Outbox 重试与死信，不回滚已提交业务事实。
+数据平台到 Core 平台的审计/事件回传不复用上述业务 API。`data-outbox` 通过独立的 `SCENARA_DATA_CORE_EVENT_ENDPOINT` 和 `SCENARA_DATA_CORE_EVENT_TOKEN` 把正式事件信封投递到 Core 的内部接收端点；投递失败进入 Outbox 重试与死信，不回滚已提交业务事实。
 
-请求失败统一返回 `api-error` 信封；分页使用 `next_cursor`，发布后的 Dataset Version、Manifest、样本集合、质量报告引用、血缘快照引用和标注快照不可变。
+请求失败统一返回 `api-error` 信封；分页使用 `next_cursor`，`limit` 的有效范围为 `1` 到 `100`，调用方不得发送超过 `100` 的值。前端工作台的列表请求统一使用 `limit=100`，并将 `422` 校验错误中的字段位置和原因转换为中文提示。
+
+运维探针和业务列表是独立的请求链路：`/readyz` 或 `/health` 可访问时，单个列表接口的校验失败不应被解释为后端离线。客户端应分别记录探针状态和业务加载错误，只有两个探针都无法访问时才显示离线状态。

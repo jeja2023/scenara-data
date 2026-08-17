@@ -57,7 +57,7 @@ class InMemoryOutbox:
     def append(self, event: OutboxEvent) -> None:
         with self._lock:
             if event.event_id in self._rows:
-                raise ValueError("duplicate outbox event")
+                raise ValueError("Outbox 事件重复")
             self._rows[event.event_id] = _OutboxRow(event=event)
 
     @property
@@ -140,7 +140,7 @@ class InMemoryIdempotencyStore:
         with self._lock:
             identity = (record.scope, record.key)
             if identity in self._records:
-                raise ValueError("duplicate idempotency record")
+                raise ValueError("幂等记录重复")
             self._records[identity] = record
 
     def _transaction_snapshot(self) -> dict[tuple[str, str], IdempotencyRecord]:
@@ -160,7 +160,7 @@ class InProcessLockProvider:
     @contextmanager
     def lock(self, name: str, *, ttl_seconds: int = 30) -> Iterator[None]:
         if ttl_seconds <= 0:
-            raise ValueError("lock ttl must be positive")
+            raise ValueError("锁的生存时间必须为正数")
         with self._guard:
             handle = self._locks.setdefault(name, RLock())
         with handle:
@@ -180,7 +180,7 @@ class LoggingEventPublisher:
             LOGGER,
             service=self._service_name,
             module="events",
-            message="outbox.event.published",
+            message="Outbox 事件已发布",
             request_id=event.request_id,
             trace_id=event.trace_id,
             event_id=event.event_id,

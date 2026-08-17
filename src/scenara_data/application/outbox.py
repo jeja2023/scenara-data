@@ -38,7 +38,7 @@ class DispatchSummary:
 def backoff_seconds(attempt_count: int) -> int:
     """指数退避；attempt_count 为本次之前的失败次数。"""
     if attempt_count < 0:
-        raise ValueError("attempt_count cannot be negative")
+        raise ValueError("attempt_count 不能为负数")
     return min(BASE_BACKOFF_SECONDS * (2**attempt_count), MAX_BACKOFF_SECONDS)
 
 
@@ -55,7 +55,7 @@ class OutboxDispatcher:
         service_name: str = "scenara-data",
     ) -> None:
         if batch_size <= 0 or max_attempts <= 0:
-            raise ValueError("batch_size and max_attempts must be positive")
+            raise ValueError("batch_size 和 max_attempts 必须为正数")
         self._dispatch = dispatch
         self._publisher = publisher
         self._clock = clock

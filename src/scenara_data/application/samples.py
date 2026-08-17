@@ -1,4 +1,4 @@
-"""Sample 领域应用服务（指南 6.3）。"""
+"""样本领域应用服务（指南 6.3）。"""
 
 from __future__ import annotations
 

@@ -74,7 +74,7 @@ def headers(idempotency_key: str) -> dict[str, str]:
 @pytest.mark.asyncio
 async def test_postgres_redis_and_s3_dependencies_work_together() -> None:
     if os.getenv("SCENARA_RUN_INTEGRATION") != "1":
-        pytest.skip("set SCENARA_RUN_INTEGRATION=1 to run real PostgreSQL/Redis/MinIO integration tests")
+        pytest.skip("设置 SCENARA_RUN_INTEGRATION=1 后运行真实的 PostgreSQL/Redis/MinIO 集成测试")
     boto3 = pytest.importorskip("boto3")
     botocore = pytest.importorskip("botocore")
     settings = integration_settings()
@@ -228,7 +228,7 @@ def prepare_postgres_schema(database_url: str) -> None:
             previous = cursor.fetchone()
             if previous is not None:
                 if previous[0] != digest:
-                    raise RuntimeError(f"applied migration {version} has changed")
+                    raise RuntimeError(f"已应用的迁移 {version} 发生变化")
                 continue
             cursor.execute(content.decode("utf-8"))
             cursor.execute(

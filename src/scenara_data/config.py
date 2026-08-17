@@ -79,11 +79,11 @@ def _positive_int(name: str, default: int) -> int:
 def load_settings() -> Settings:
     runtime_mode = os.getenv("SCENARA_DATA_RUNTIME_MODE", "memory").strip().lower()
     if runtime_mode not in RUNTIME_MODES:
-        raise RuntimeError(f"unsupported SCENARA_DATA_RUNTIME_MODE: {runtime_mode}")
+        raise RuntimeError(f"不支持的 SCENARA_DATA_RUNTIME_MODE：{runtime_mode}")
 
     maturity = os.getenv("SCENARA_DATA_MATURITY", DECLARED_MATURITY).strip()
     if maturity not in MATURITY_LEVELS:
-        raise RuntimeError(f"unsupported SCENARA_DATA_MATURITY: {maturity}")
+        raise RuntimeError(f"不支持的 SCENARA_DATA_MATURITY：{maturity}")
     if MATURITY_LEVELS.index(maturity) > MATURITY_LEVELS.index(DECLARED_MATURITY):
         # 规范 63/72：缺少资格与发布证据时不得对外声明更高成熟度。
         raise RuntimeError(f"当前仓库证据链只支持声明 {DECLARED_MATURITY} 或更低成熟度")
@@ -91,9 +91,9 @@ def load_settings() -> Settings:
     token = os.getenv("SCENARA_DATA_TRUSTED_SERVICE_TOKEN", "").strip()
     if runtime_mode == "postgres":
         if not token:
-            raise RuntimeError("SCENARA_DATA_TRUSTED_SERVICE_TOKEN is required in postgres runtime mode")
+            raise RuntimeError("PostgreSQL 运行模式必须配置 SCENARA_DATA_TRUSTED_SERVICE_TOKEN")
         if token == DEFAULT_DEV_SERVICE_TOKEN:
-            raise RuntimeError("postgres runtime mode 拒绝使用开发默认服务令牌")
+            raise RuntimeError("PostgreSQL 运行模式拒绝使用开发默认服务令牌")
     elif not token:
         token = DEFAULT_DEV_SERVICE_TOKEN
 
@@ -116,7 +116,7 @@ def load_settings() -> Settings:
     if event_endpoint is not None and not event_token:
         raise RuntimeError("配置事件投递地址时必须同时配置 SCENARA_DATA_CORE_EVENT_TOKEN")
     if runtime_mode == "postgres" and (not event_endpoint or not event_token):
-        raise RuntimeError("postgres runtime mode 要求配置 Core 事件投递地址和服务令牌")
+        raise RuntimeError("PostgreSQL 运行模式要求配置 Core 事件投递地址和服务令牌")
 
     cors_origins = tuple(
         sorted(

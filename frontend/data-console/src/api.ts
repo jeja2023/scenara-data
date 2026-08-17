@@ -30,6 +30,7 @@ export interface ConnectionSettings {
 }
 
 const STORAGE_KEY = "scenara.data.console.connection.v1";
+const API_PAGE_LIMIT = 100;
 
 const defaults: ConnectionSettings = {
   apiBase: import.meta.env.VITE_DATA_API_BASE ?? "http://127.0.0.1:8081",
@@ -70,7 +71,7 @@ export function saveConnection(value: ConnectionSettings): void {
 }
 
 export function connectionSummary(value: ConnectionSettings): string {
-  const base = value.apiBase || "same-origin";
+  const base = value.apiBase || "同源连接";
   return `${base} · ${value.tenantId}/${value.projectId}`;
 }
 
@@ -103,8 +104,31 @@ function buildHeaders(
   return headers;
 }
 
-function localizedHttpError(status: number, code: string): string {
+function summarizeValidationDetails(details: unknown): string | null {
+  if (!details || typeof details !== "object") return null;
+  const violations = (details as { violations?: unknown }).violations;
+  if (!Array.isArray(violations) || !violations.length) return null;
+  const first = violations[0] as { location?: unknown; message?: unknown };
+  const location = typeof first.location === "string" ? first.location : "请求参数";
+  const message = typeof first.message === "string" ? first.message : "输入值不符合字段约束";
+  return `${location} ${message}`;
+}
+
+function localizedHttpError(
+  status: number,
+  code: string,
+  bodyMessage?: string,
+  details?: unknown,
+): string {
+  if (code === "VALIDATION_FAILED") {
+    const validation = summarizeValidationDetails(details);
+    if (validation) {
+      return `${bodyMessage || "请求参数不符合契约"}：${validation}`;
+    }
+    return bodyMessage || "请求内容未通过校验";
+  }
   const byCode: Record<string, string> = {
+    HTTP_ERROR: "请求失败，请稍后重试",
     UNAUTHENTICATED: "身份认证失败或令牌无效",
     FORBIDDEN: "当前身份无权执行此操作",
     RESOURCE_NOT_FOUND: "未找到请求的资源",
@@ -131,28 +155,40 @@ async function request<T>(
   path: string,
   init: RequestInit = {},
   timeoutMs = 8000,
+  connectionOverride?: ConnectionSettings,
 ): Promise<T> {
-  const connection = loadConnection();
+  const connection = connectionOverride ?? loadConnection();
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), timeoutMs);
-  const response = await fetch(`${buildBaseUrl(connection)}${path}`, {
-    ...init,
-    signal: init.signal ?? controller.signal,
-    headers: buildHeaders(init, connection),
-    cache: "no-store",
-  });
-  window.clearTimeout(timer);
-  const body = await parseJson<T | ApiErrorBody>(response);
-  if (!response.ok) {
-    const error = (body as ApiErrorBody).error;
-    throw new ApiError(
-      response.status,
-      error?.code ?? "HTTP_ERROR",
-      localizedHttpError(response.status, error?.code ?? "HTTP_ERROR"),
-      (body as ApiErrorBody).request_id,
-    );
+  try {
+    const response = await fetch(`${buildBaseUrl(connection)}${path}`, {
+      ...init,
+      signal: init.signal ?? controller.signal,
+      headers: buildHeaders(init, connection),
+      cache: "no-store",
+    });
+    const body = await parseJson<T | ApiErrorBody>(response);
+    if (!response.ok) {
+      const error = (body as ApiErrorBody).error;
+      throw new ApiError(
+        response.status,
+        error?.code ?? "HTTP_ERROR",
+        localizedHttpError(
+          response.status,
+          error?.code ?? "HTTP_ERROR",
+          error?.message,
+          error?.details,
+        ),
+        (body as ApiErrorBody).request_id,
+      );
+    }
+    return body as T;
+  } catch (caught) {
+    if (caught instanceof ApiError) throw caught;
+    throw new ApiError(0, "NETWORK_ERROR", localizedHttpError(0, "NETWORK_ERROR"));
+  } finally {
+    window.clearTimeout(timer);
   }
-  return body as T;
 }
 
 export async function api<T>(
@@ -162,16 +198,16 @@ export async function api<T>(
   return request<T>(path, init);
 }
 
-export async function fetchReadyz(): Promise<ReadyzResponse> {
-  return request<ReadyzResponse>("/readyz");
+export async function fetchReadyz(connection?: ConnectionSettings): Promise<ReadyzResponse> {
+  return request<ReadyzResponse>("/readyz", {}, 8000, connection);
 }
 
-export async function fetchHealth(): Promise<HealthResponse> {
-  return request<HealthResponse>("/health");
+export async function fetchHealth(connection?: ConnectionSettings): Promise<HealthResponse> {
+  return request<HealthResponse>("/health", {}, 8000, connection);
 }
 
 export async function listDatasets(): Promise<Page<DatasetRecord>> {
-  return api<Page<DatasetRecord>>("/internal/v1/datasets?limit=200");
+  return api<Page<DatasetRecord>>(`/internal/v1/datasets?limit=${API_PAGE_LIMIT}`);
 }
 
 export async function getDataset(datasetId: string): Promise<DatasetRecord> {
@@ -209,7 +245,7 @@ export async function listDatasetVersions(
   datasetId: string,
 ): Promise<Page<DatasetVersion>> {
   return api<Page<DatasetVersion>>(
-    `/internal/v1/datasets/${encodeURIComponent(datasetId)}/versions?limit=200`,
+    `/internal/v1/datasets/${encodeURIComponent(datasetId)}/versions?limit=${API_PAGE_LIMIT}`,
   );
 }
 
@@ -288,7 +324,7 @@ export async function getDatasetVersionManifest(
 }
 
 export async function listSamples(): Promise<Page<SampleRecord>> {
-  return api<Page<SampleRecord>>("/internal/v1/samples?limit=200");
+  return api<Page<SampleRecord>>(`/internal/v1/samples?limit=${API_PAGE_LIMIT}`);
 }
 
 export async function intakeHardSamples(

@@ -1,1 +1,1 @@
-"""Scenara Data HTTP API."""
+"""景枢数据 HTTP API。"""

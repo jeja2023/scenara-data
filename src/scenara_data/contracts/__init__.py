@@ -138,11 +138,11 @@ REGISTERED_STATES: MappingProxyType[str, tuple[str, ...]] = MappingProxyType(
 def assert_registered_event(event_type: str) -> str:
     """禁止绕过契约新增事件类型（规范 34、61）。"""
     if event_type not in PUBLISHED_EVENTS:
-        raise ValueError(f"unregistered event type: {event_type}")
+        raise ValueError(f"未登记的事件类型：{event_type}")
     return event_type
 
 
 def assert_registered_permission(permission: str) -> str:
     if permission not in PERMISSIONS:
-        raise ValueError(f"unregistered permission id: {permission}")
+        raise ValueError(f"未登记的权限标识：{permission}")
     return permission

@@ -1,1 +1,1 @@
-"""Scenara Data domain models and services."""
+"""景枢数据领域模型与服务。"""

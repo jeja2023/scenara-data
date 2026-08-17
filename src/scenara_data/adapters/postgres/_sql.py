@@ -125,7 +125,7 @@ def _translate(exc: Exception) -> Exception:
     """把数据库约束冲突映射为领域可处理的异常，不向上层泄漏数据库细节。"""
     sqlstate = getattr(exc, "sqlstate", None) or getattr(getattr(exc, "diag", None), "sqlstate", None)
     if sqlstate == DUPLICATE_KEY_SQLSTATE:
-        return ValueError("duplicate record")
+        return ValueError("记录重复")
     if sqlstate == FOREIGN_KEY_SQLSTATE:
-        return KeyError("referenced record not found")
+        return KeyError("未找到被引用的记录")
     return exc

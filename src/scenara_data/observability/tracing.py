@@ -30,7 +30,7 @@ def extract_trace_id(traceparent: str | None) -> str | None:
 def format_traceparent(trace_id: str, span_id: str, *, sampled: bool = True) -> str:
     """构造下游调用使用的 traceparent 头。"""
     if len(trace_id) != 32 or trace_id == INVALID_TRACE_ID:
-        raise ValueError("trace_id must be 32 lowercase hex characters")
+        raise ValueError("trace_id 必须是 32 位小写十六进制字符")
     if len(span_id) != 16 or span_id == INVALID_SPAN_ID:
-        raise ValueError("span_id must be 16 lowercase hex characters")
+        raise ValueError("span_id 必须是 16 位小写十六进制字符")
     return f"00-{trace_id}-{span_id}-{'01' if sampled else '00'}"

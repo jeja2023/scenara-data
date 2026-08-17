@@ -34,9 +34,32 @@ HTTP_STATUS_ERROR_CODES = {
     429: "RATE_LIMITED",
 }
 
+VALIDATION_ERROR_MESSAGES = {
+    "missing": "缺少必填字段",
+    "extra_forbidden": "包含不允许的额外字段",
+    "string_too_short": "字符串长度不足",
+    "string_too_long": "字符串长度超出限制",
+    "too_short": "条目数量不足",
+    "too_long": "条目数量超出限制",
+    "greater_than": "数值必须大于限定值",
+    "greater_than_equal": "数值不能小于限定值",
+    "less_than": "数值必须小于限定值",
+    "less_than_equal": "数值不能大于限定值",
+    "literal_error": "输入值不在允许范围内",
+    "enum": "输入值不是有效的枚举成员",
+    "bool_parsing": "输入值无法解析为布尔值",
+    "int_parsing": "输入值无法解析为整数",
+    "float_parsing": "输入值无法解析为数字",
+    "datetime_parsing": "日期时间格式无效",
+    "json_invalid": "JSON 内容无效",
+    "list_type": "输入值必须是列表",
+    "tuple_type": "输入值必须是元组",
+    "dict_type": "输入值必须是对象",
+}
+
 DESCRIPTION = (
-    "景枢数据平台内部 API：Dataset、Dataset Version、Sample、Annotation、Data Quality、"
-    "Data Lineage、Hard Sample 与 Dataset Builder。"
+    "景枢数据平台内部 API：数据集、数据集版本、样本、标注、数据质量、"
+    "数据血缘、难例与数据集构建。"
 )
 
 
@@ -49,18 +72,18 @@ def create_app(
     resolved_container = container or build_container(resolved_settings)
 
     application = FastAPI(
-        title="Scenara Data",
+        title="景枢数据",
         version=__version__,
         description=DESCRIPTION,
         openapi_tags=[
-            {"name": "operations", "description": "存活、就绪与指标探针"},
-            {"name": "datasets", "description": "数据集目录"},
-            {"name": "dataset-versions", "description": "不可变数据集版本与对外引用"},
-            {"name": "samples", "description": "样本"},
-            {"name": "annotations", "description": "标注、修订、任务与复核"},
-            {"name": "quality", "description": "数据质量规则、运行与报告"},
-            {"name": "lineage", "description": "数据血缘"},
-            {"name": "hard-samples", "description": "难例承接"},
+            {"name": "运维", "description": "存活、就绪与指标探针"},
+            {"name": "数据集", "description": "数据集目录"},
+            {"name": "数据集版本", "description": "不可变数据集版本与对外引用"},
+            {"name": "样本", "description": "样本"},
+            {"name": "标注", "description": "标注、修订、任务与复核"},
+            {"name": "数据质量", "description": "数据质量规则、运行与报告"},
+            {"name": "数据血缘", "description": "数据血缘"},
+            {"name": "难例", "description": "难例承接"},
         ],
     )
     application.state.container = resolved_container
@@ -100,7 +123,7 @@ def create_app(
             LOGGER,
             service=resolved_settings.service_name,
             module="api",
-            message="request.completed",
+            message="请求处理完成",
             request_id=request_id,
             trace_id=trace_id,
             method=request.method,
@@ -125,7 +148,10 @@ def create_app(
     async def request_validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
         details = {
             "violations": [
-                {"location": ".".join(str(part) for part in item["loc"]), "message": item["msg"]}
+                {
+                    "location": ".".join(str(part) for part in item["loc"]),
+                    "message": _localized_validation_message(item),
+                }
                 for item in exc.errors()
             ]
         }
@@ -158,7 +184,7 @@ def create_app(
             level=logging.ERROR,
             service=resolved_settings.service_name,
             module="api",
-            message="request.failed",
+            message="请求处理失败",
             request_id=_header(request, "x-request-id"),
             trace_id=_header(request, "x-trace-id"),
             path=_route_of(request),
@@ -190,6 +216,19 @@ def _route_of(request: Request) -> str:
     return str(path) if path else request.url.path
 
 
+def _localized_validation_message(item: dict[str, Any]) -> str:
+    error_type = str(item.get("type", ""))
+    message = str(item.get("msg", ""))
+    if error_type in {"value_error", "assertion_error"}:
+        for prefix in ("Value error, ", "Assertion failed, "):
+            if message.startswith(prefix):
+                message = message.removeprefix(prefix)
+                break
+        if any("\u4e00" <= character <= "\u9fff" for character in message):
+            return message
+    return VALIDATION_ERROR_MESSAGES.get(error_type, "输入值不符合字段约束")
+
+
 def _error_response(
     request: Request,
     container: ApplicationContainer,
@@ -200,7 +239,7 @@ def _error_response(
     details: dict[str, Any],
 ) -> JSONResponse:
     if code not in contracts.ERROR_CODES and code not in HTTP_STATUS_ERROR_CODES.values():
-        raise ValueError(f"unregistered error code: {code}")
+        raise ValueError(f"未登记的错误码：{code}")
     container.metrics.increment(
         "scenara_data_http_errors_total", labels={"code": code, "status": str(status_code)}
     )

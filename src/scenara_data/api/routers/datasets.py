@@ -1,4 +1,4 @@
-"""Dataset 内部 API（指南 11.1）。"""
+"""数据集内部 API（指南 11.1）。"""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ from scenara_data.api.schemas import (
 )
 from scenara_data.domain.models import Dataset, DatasetVersion
 
-router = APIRouter(prefix="/internal/v1", tags=["datasets"])
+router = APIRouter(prefix="/internal/v1", tags=["数据集"])
 
 ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     401: {"model": ErrorEnvelope},

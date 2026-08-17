@@ -20,7 +20,7 @@ from scenara_data.ports.interfaces import RequestContext
 CORE_REPO = Path(os.getenv("SCENARA_CORE_REPO", Path(__file__).resolve().parents[2] / "scenara"))
 pytestmark = [
     pytest.mark.e2e,
-    pytest.mark.skipif(not (CORE_REPO / "scenara" / "platform").is_dir(), reason="scenara Core checkout unavailable"),
+    pytest.mark.skipif(not (CORE_REPO / "scenara" / "platform").is_dir(), reason="未找到 scenara Core 检出目录"),
 ]
 
 

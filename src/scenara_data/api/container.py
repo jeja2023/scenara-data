@@ -113,7 +113,7 @@ def build_container(settings: Settings) -> ApplicationContainer:
         outbox_dispatch = repository
         idempotency_store = repository
     else:  # pragma: no cover - load_settings 已拒绝未知模式
-        raise RuntimeError(f"unsupported SCENARA_DATA_RUNTIME_MODE: {settings.runtime_mode}")
+        raise RuntimeError(f"不支持的 SCENARA_DATA_RUNTIME_MODE：{settings.runtime_mode}")
 
     lock: Any
     if settings.redis_url:

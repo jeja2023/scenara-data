@@ -1,4 +1,4 @@
-"""Sample 内部 API（指南 6.3）。"""
+"""样本内部 API（指南 6.3）。"""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from scenara_data.api.routers.datasets import ERROR_RESPONSES
 from scenara_data.api.schemas import CreateSampleRequest, DatasetSplit, SamplePage
 from scenara_data.domain.models import Sample
 
-router = APIRouter(prefix="/internal/v1/samples", tags=["samples"])
+router = APIRouter(prefix="/internal/v1/samples", tags=["样本"])
 
 
 @router.post(

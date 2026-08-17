@@ -20,7 +20,7 @@ DEFAULT_FRONTEND_PORT = 5173
 
 
 def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="启动 Scenara Data 本地开发服务")
+    parser = argparse.ArgumentParser(description="启动景枢数据本地开发服务")
     parser.add_argument("--mode", choices=("all", "backend", "frontend"), default="all")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--backend-port", type=int, default=DEFAULT_BACKEND_PORT)
@@ -29,7 +29,7 @@ def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--env-file", default=".env")
     parser.add_argument("--reload", action="store_true")
     parser.add_argument("--app", default="scenara_data.api.app:app")
-    parser.add_argument("--strict-port", action="store_true", help="backend-only 模式下不自动寻找替代端口")
+    parser.add_argument("--strict-port", action="store_true", help="仅启动后端时不自动寻找替代端口")
     parser.add_argument("--skip-frontend-install", action="store_true")
     return parser.parse_args(argv)
 
@@ -170,7 +170,7 @@ def _ensure_frontend_dependencies() -> None:
     npm = shutil.which("npm") or shutil.which("npm.cmd")
     if npm is None:
         raise SystemExit("未找到 npm，请先安装 Node.js 与 npm")
-    print("前端依赖缺失，正在安装 npm packages...")
+    print("前端依赖缺失，正在安装 npm 软件包...")
     subprocess.run([npm, "install", "--no-audit", "--no-fund"], cwd=FRONTEND_DIR, check=True)
 
 

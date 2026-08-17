@@ -1,4 +1,4 @@
-"""Annotation 领域应用服务（指南 6.4、11.1、M4）。
+"""标注领域应用服务（指南 6.4、11.1、M4）。
 
 标注修订采用追加式版本，审核历史不可覆盖；Dataset Version 发布时冻结当时已接受的修订。
 """
@@ -346,9 +346,9 @@ class AnnotationService(ApplicationService):
         self._require(context, "data.annotation.review")
         current = self._require_task(task_id, context)
         if current.status != AnnotationTaskStatus.SUBMITTED:
-            raise InvalidStateError("只有 submitted 状态的标注任务可以复核")
+            raise InvalidStateError("只有已提交的标注任务可以复核")
         if decision not in {"approved", "rejected"}:
-            raise InputValidationError("复核结论只能是 approved 或 rejected")
+            raise InputValidationError("复核结论只能是批准或拒绝")
         resolved_revision = self._resolve_task_revision(current, context, revision_id)
         occurred_at = self._clock()
         target = (

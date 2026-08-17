@@ -56,5 +56,5 @@ def test_invalid_migration_records_produce_a_persisted_idempotent_failure_report
     assert first.failed_count == 1
     assert first.details_ref is not None
     assert first.completed_at is not None
-    assert first.failures[0].startswith("migration package validation failed")
+    assert first.failures[0].startswith("迁移包校验失败")
     assert replay == first

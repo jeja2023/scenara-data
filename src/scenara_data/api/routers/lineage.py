@@ -1,4 +1,4 @@
-"""Data Lineage 内部 API。"""
+"""数据血缘内部 API。"""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from scenara_data.api.routers.datasets import ERROR_RESPONSES
 from scenara_data.api.schemas import LineagePage
 from scenara_data.domain.models import LineageSnapshot
 
-router = APIRouter(prefix="/internal/v1", tags=["lineage"])
+router = APIRouter(prefix="/internal/v1", tags=["数据血缘"])
 
 
 @router.get(

@@ -63,7 +63,7 @@ class S3ObjectStorage:
             if existing.checksum == checksum and existing.size_bytes == len(content):
                 self.read_verified(existing)
                 return existing
-            raise ValueError("immutable object already exists with different content")
+            raise ValueError("不可变对象已存在且内容不同")
         try:
             response = self._client.put_object(
                 Bucket=target,
@@ -78,7 +78,7 @@ class S3ObjectStorage:
                 existing = self._head_reference(target, key)
                 if existing is not None and existing.checksum == checksum:
                     return existing
-                raise ValueError("immutable object already exists with different content") from exc
+                raise ValueError("不可变对象已存在且内容不同") from exc
             raise
         return ObjectReference(
             bucket=target,
@@ -100,12 +100,12 @@ class S3ObjectStorage:
         content = response["Body"].read()
         checksum = f"sha256:{hashlib.sha256(content).hexdigest()}"
         if checksum != reference.checksum or len(content) != reference.size_bytes:
-            raise ValueError("object checksum or size mismatch")
+            raise ValueError("对象校验和或大小不匹配")
         return content
 
     def presign_read(self, reference: ObjectReference, expires_in_seconds: int) -> str:
         if expires_in_seconds <= 0:
-            raise ValueError("presigned URL expiry must be positive")
+            raise ValueError("预签名 URL 的有效期必须为正数")
         if self._head_reference(reference.bucket, reference.key) is None:
             raise FileNotFoundError(f"{reference.bucket}/{reference.key}")
         return str(

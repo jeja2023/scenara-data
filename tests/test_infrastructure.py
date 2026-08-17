@@ -62,7 +62,7 @@ def test_memory_transaction_rolls_back_domain_audit_outbox_and_idempotency() -> 
         data={"dataset_id": dataset.dataset_id},
     )
 
-    with pytest.raises(RuntimeError, match="rollback"):
+    with pytest.raises(RuntimeError, match="回滚"):
         with repository.transaction():
             repository.add_dataset(dataset)
             audit.record(audit_record)
@@ -76,7 +76,7 @@ def test_memory_transaction_rolls_back_domain_audit_outbox_and_idempotency() -> 
                     response_payload={"dataset_id": dataset.dataset_id},
                 )
             )
-            raise RuntimeError("rollback")
+            raise RuntimeError("回滚")
 
     with pytest.raises(KeyError):
         repository.get_dataset(dataset.dataset_id, "tenant-a", "project-a")

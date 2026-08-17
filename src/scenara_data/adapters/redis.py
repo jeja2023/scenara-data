@@ -55,7 +55,7 @@ class RedisLockProvider:
     @contextmanager
     def lock(self, name: str, *, ttl_seconds: int = 30) -> Iterator[None]:
         if ttl_seconds <= 0:
-            raise ValueError("lock ttl must be positive")
+            raise ValueError("锁的生存时间必须为正数")
         key = f"{LOCK_PREFIX}{name}"
         token = secrets.token_hex(16)
         deadline = time.monotonic() + self._acquire_timeout_seconds

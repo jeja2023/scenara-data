@@ -14,7 +14,7 @@ CHECKSUM = r"^sha256:[0-9a-f]{64}$"
 
 
 class DomainModel(BaseModel):
-    """Immutable domain values shared by the Data service."""
+    """数据服务共享的不可变领域值。"""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -23,9 +23,9 @@ class DomainModel(BaseModel):
     def utc_timezone_required(cls, value: Any) -> Any:
         if isinstance(value, datetime):
             if value.tzinfo is None:
-                raise ValueError("timestamps must include a timezone")
+                raise ValueError("时间戳必须包含时区")
             if value.utcoffset() != UTC.utcoffset(value):
-                raise ValueError("timestamps must use UTC")
+                raise ValueError("时间戳必须使用 UTC")
         return value
 
 
@@ -86,7 +86,7 @@ JOB_TRANSITIONS: dict[JobStatus, frozenset[JobStatus]] = {
 
 
 class ObjectReference(DomainModel):
-    """Portable, checksum-addressable object storage reference."""
+    """可移植、可通过校验和寻址的对象存储引用。"""
 
     bucket: str = Field(min_length=1, max_length=255)
     key: str = Field(min_length=1, max_length=1024)
@@ -99,7 +99,7 @@ class ObjectReference(DomainModel):
     @classmethod
     def portable_bucket(cls, value: str) -> str:
         if "/" in value or "\\" in value or value.strip() != value:
-            raise ValueError("object references must use a portable bucket name")
+            raise ValueError("对象引用必须使用可移植的存储桶名称")
         return value
 
     @field_validator("key")
@@ -112,7 +112,7 @@ class ObjectReference(DomainModel):
             or ":" in value
             or any(part in {"", ".", ".."} for part in parts)
         ):
-            raise ValueError("object references must use a portable object key")
+            raise ValueError("对象引用必须使用可移植的对象键")
         return value
 
 
@@ -134,19 +134,19 @@ class Dataset(DomainModel):
     @model_validator(mode="after")
     def archived_dataset_has_timestamp(self) -> Dataset:
         if self.status == DatasetStatus.ARCHIVED and self.archived_at is None:
-            raise ValueError("archived datasets require archived_at")
+            raise ValueError("已归档数据集必须填写 archived_at")
         if self.status != DatasetStatus.ARCHIVED and self.archived_at is not None:
-            raise ValueError("only archived datasets can have archived_at")
+            raise ValueError("只有已归档数据集可以填写 archived_at")
         return self
 
     def activate(self, occurred_at: datetime) -> Dataset:
         if self.status != DatasetStatus.DRAFT:
-            raise ValueError(f"illegal dataset transition: {self.status} -> active")
+            raise ValueError("非法的数据集状态转换")
         return self.model_copy(update={"status": DatasetStatus.ACTIVE, "updated_at": occurred_at})
 
     def archive(self, occurred_at: datetime) -> Dataset:
         if self.status not in {DatasetStatus.DRAFT, DatasetStatus.ACTIVE}:
-            raise ValueError(f"illegal dataset transition: {self.status} -> archived")
+            raise ValueError("非法的数据集状态转换")
         return self.model_copy(
             update={"status": DatasetStatus.ARCHIVED, "updated_at": occurred_at, "archived_at": occurred_at}
         )
@@ -176,21 +176,21 @@ class Sample(DomainModel):
     @model_validator(mode="after")
     def content_fields_match_reference(self) -> Sample:
         if self.content_sha256 is not None and self.content_sha256 != self.source_ref.checksum:
-            raise ValueError("content_sha256 must match source_ref checksum")
+            raise ValueError("content_sha256 必须与 source_ref 的校验和一致")
         if self.media_kind is not None and self.media_kind != self.media_type:
-            raise ValueError("media_kind must match media_type")
+            raise ValueError("media_kind 必须与 media_type 一致")
         if self.bbox is not None:
             left, top, width, height = self.bbox
             if width <= 0 or height <= 0 or left < 0 or top < 0:
-                raise ValueError("bbox must use non-negative origin and positive width/height")
+                raise ValueError("bbox 的原点必须非负，宽度和高度必须为正")
         return self
 
     def materialize(self, content_ref: ObjectReference) -> Sample:
-        """绑定 Data 自有不可变对象空间中的副本，用于发布不再依赖 Core 对象 key。"""
+        """绑定数据平台自有不可变对象空间中的副本，使发布不再依赖 Core 对象键。"""
         if content_ref.checksum != self.source_ref.checksum:
-            raise ValueError("materialized content checksum must match the source checksum")
+            raise ValueError("已物化内容的校验和必须与来源校验和一致")
         if content_ref.version is None:
-            raise ValueError("materialized content requires a versioned immutable reference")
+            raise ValueError("已物化内容必须使用带版本的不可变引用")
         return self.model_copy(update={"content_ref": content_ref})
 
 
@@ -215,14 +215,14 @@ class Annotation(DomainModel):
     def review_fields_match_status(self) -> Annotation:
         reviewed = self.status in {AnnotationStatus.ACCEPTED, AnnotationStatus.REJECTED}
         if reviewed and (self.reviewed_by is None or self.reviewed_at is None):
-            raise ValueError("reviewed annotations require reviewer and reviewed_at")
+                raise ValueError("已复核标注必须填写 reviewer 和 reviewed_at")
         if self.status == AnnotationStatus.ACCEPTED and self.accepted_revision_id is None:
-            raise ValueError("accepted annotations require accepted_revision_id")
+                raise ValueError("已接受标注必须填写 accepted_revision_id")
         return self
 
     def submit_for_review(self) -> Annotation:
         if self.status != AnnotationStatus.DRAFT:
-            raise ValueError(f"illegal annotation transition: {self.status} -> in_review")
+            raise ValueError("非法的标注状态转换")
         return self.model_copy(update={"status": AnnotationStatus.IN_REVIEW})
 
     def review(self, target: AnnotationStatus, *, reviewer: str, occurred_at: datetime) -> Annotation:
@@ -230,7 +230,7 @@ class Annotation(DomainModel):
             AnnotationStatus.ACCEPTED,
             AnnotationStatus.REJECTED,
         }:
-            raise ValueError(f"illegal annotation transition: {self.status} -> {target}")
+                raise ValueError("非法的标注状态转换")
         changes: dict[str, Any] = {
             "status": target,
             "reviewed_by": reviewer,
@@ -239,7 +239,7 @@ class Annotation(DomainModel):
         }
         if target == AnnotationStatus.ACCEPTED:
             if self.current_revision_id is None:
-                raise ValueError("accepting an annotation requires a current revision")
+                raise ValueError("接受标注必须存在当前修订")
             changes["accepted_revision_id"] = self.current_revision_id
         return self.model_copy(update=changes)
 
@@ -272,11 +272,11 @@ class DatasetManifest(DomainModel):
     @model_validator(mode="after")
     def valid_counts(self) -> DatasetManifest:
         if any(value < 0 for value in self.split_counts.values()):
-            raise ValueError("manifest split counts cannot be negative")
+            raise ValueError("清单分割计数不能为负数")
         if sum(self.split_counts.values()) != len(self.sample_ids):
-            raise ValueError("manifest split counts must equal the number of samples")
+            raise ValueError("清单分割计数之和必须等于样本数量")
         if len(set(self.sample_ids)) != len(self.sample_ids):
-            raise ValueError("manifest sample IDs must be unique")
+            raise ValueError("清单中的样本 ID 必须唯一")
         return self
 
 
@@ -301,18 +301,18 @@ class DatasetVersion(DomainModel):
     def published_version_has_manifest(self) -> DatasetVersion:
         published_states = {DatasetVersionStatus.PUBLISHED, DatasetVersionStatus.ARCHIVED}
         if self.status in published_states and (self.manifest_ref is None or self.published_at is None):
-            raise ValueError("published dataset versions require an immutable manifest and published_at")
+            raise ValueError("已发布数据集版本必须具有不可变清单和 published_at")
         if self.status in published_states and (self.manifest_sha256 is None or self.sample_count is None):
-            raise ValueError("published dataset versions require manifest_sha256 and sample_count")
+            raise ValueError("已发布数据集版本必须具有 manifest_sha256 和 sample_count")
         if self.manifest_ref is not None and self.manifest_sha256 is not None:
             if self.manifest_ref.checksum != self.manifest_sha256:
-                raise ValueError("manifest_sha256 must match manifest_ref checksum")
+                raise ValueError("manifest_sha256 必须与 manifest_ref 的校验和一致")
         if self.status not in published_states and (self.manifest_ref is not None or self.published_at is not None):
-            raise ValueError("unpublished dataset versions cannot have a manifest or published_at")
+            raise ValueError("未发布数据集版本不能具有清单或 published_at")
         if (self.status == DatasetVersionStatus.ARCHIVED) != (self.archived_at is not None):
-            raise ValueError("only archived dataset versions can have archived_at")
+            raise ValueError("只有已归档数据集版本可以填写 archived_at")
         if self.failure_reason is not None and self.status != DatasetVersionStatus.FAILED:
-            raise ValueError("only failed dataset versions can have failure_reason")
+            raise ValueError("只有失败的数据集版本可以填写 failure_reason")
         return self
 
     def transition(
@@ -336,14 +336,14 @@ class DatasetVersion(DomainModel):
             DatasetVersionStatus.FAILED: {DatasetVersionStatus.BUILDING},
         }
         if target not in allowed[self.status]:
-            raise ValueError(f"illegal dataset version transition: {self.status} -> {target}")
+            raise ValueError("非法的数据集版本状态转换")
         if target == DatasetVersionStatus.PUBLISHED:
             if manifest_ref is None or occurred_at is None:
-                raise ValueError("publishing requires manifest_ref and occurred_at")
+                raise ValueError("发布必须填写 manifest_ref 和 occurred_at")
             if manifest_ref.version is None:
-                raise ValueError("publishing requires a versioned immutable manifest reference")
+                raise ValueError("发布必须使用带版本的不可变清单引用")
             if sample_count is None or sample_count < 1:
-                raise ValueError("publishing requires a positive sample_count")
+                raise ValueError("发布要求 sample_count 为正数")
             return self.model_copy(
                 update={
                     "status": target,
@@ -358,7 +358,7 @@ class DatasetVersion(DomainModel):
             )
         if target == DatasetVersionStatus.ARCHIVED:
             if occurred_at is None:
-                raise ValueError("archiving requires occurred_at")
+                raise ValueError("归档必须填写 occurred_at")
             return self.model_copy(update={"status": target, "archived_at": occurred_at})
         if target == DatasetVersionStatus.READY:
             return self.model_copy(
@@ -411,12 +411,12 @@ class LineageLink(DomainModel):
     @model_validator(mode="after")
     def no_self_reference(self) -> LineageLink:
         if self.source_entity_type == self.target_entity_type and self.source_entity_id == self.target_entity_id:
-            raise ValueError("lineage links cannot point to the same entity")
+            raise ValueError("血缘链接不能指向同一个实体")
         return self
 
 
 class HardSampleHandoff(DomainModel):
-    """Validated Core handoff that can be converted into a Data Sample."""
+    """经过校验、可转换为数据样本的 Core 交接记录。"""
 
     handoff_id: str = Field(pattern=BUSINESS_ID)
     source_result_id: str = Field(pattern=BUSINESS_ID)
@@ -439,7 +439,7 @@ class HardSampleHandoff(DomainModel):
     @model_validator(mode="after")
     def handoff_is_safe_to_receive(self) -> HardSampleHandoff:
         if not (self.approved and self.authorized and self.deidentified):
-            raise ValueError("hard sample handoff must be approved, authorized, and deidentified")
+            raise ValueError("难例交接必须已批准、已授权且已脱敏")
         return self
 
     @property
@@ -463,13 +463,13 @@ class HardSampleManifest(DomainModel):
     @model_validator(mode="after")
     def manifest_is_safe_to_receive(self) -> HardSampleManifest:
         if not (self.approved and self.authorized and self.deidentified):
-            raise ValueError("hard sample manifest must be approved, authorized, and deidentified")
+            raise ValueError("难例清单必须已批准、已授权且已脱敏")
         handoff_ids = [item.handoff_id for item in self.items]
         if len(set(handoff_ids)) != len(handoff_ids):
-            raise ValueError("hard sample manifest cannot repeat a handoff_id")
+            raise ValueError("难例清单不能重复 handoff_id")
         foreign = sorted({item.source_system for item in self.items if item.source_system != self.source_system})
         if foreign:
-            raise ValueError(f"hard sample items must originate from {self.source_system}: {foreign}")
+            raise ValueError(f"难例条目必须来源于 {self.source_system}：{foreign}")
         return self
 
     def content_checksum(self) -> str:
@@ -555,9 +555,9 @@ class AnnotationTask(DomainModel):
             AnnotationTaskStatus.CANCELLED: set(),
         }
         if target not in allowed[self.status]:
-            raise ValueError(f"illegal annotation task transition: {self.status} -> {target}")
+            raise ValueError("非法的标注任务状态转换")
         if target == AnnotationTaskStatus.ASSIGNED and not assigned_to:
-            raise ValueError("assigning an annotation task requires assigned_to")
+            raise ValueError("分派标注任务必须填写 assigned_to")
         return self.model_copy(
             update={
                 "status": target,
@@ -591,12 +591,12 @@ class AnnotationAssignment(DomainModel):
     @model_validator(mode="after")
     def release_after_assignment(self) -> AnnotationAssignment:
         if self.released_at is not None and self.released_at < self.assigned_at:
-            raise ValueError("assignment released_at cannot precede assigned_at")
+            raise ValueError("assignment 的 released_at 不能早于 assigned_at")
         return self
 
 
 class AnnotationSnapshot(DomainModel):
-    """Dataset Version 发布时冻结的标注修订集合。"""
+    """数据集版本发布时冻结的标注修订集合。"""
 
     snapshot_id: str = Field(pattern=BUSINESS_ID)
     dataset_version_id: str = Field(pattern=BUSINESS_ID)
@@ -608,7 +608,7 @@ class AnnotationSnapshot(DomainModel):
     def unique_annotations(self) -> AnnotationSnapshot:
         annotation_ids = [item[0] for item in self.entries]
         if len(set(annotation_ids)) != len(annotation_ids):
-            raise ValueError("annotation snapshot cannot freeze the same annotation twice")
+            raise ValueError("标注快照不能两次冻结同一标注")
         return self
 
 
@@ -647,9 +647,9 @@ class QualityRun(DomainModel):
     def terminal_run_is_consistent(self) -> QualityRun:
         terminal = {JobStatus.SUCCEEDED, JobStatus.FAILED, JobStatus.CANCELLED}
         if (self.status in terminal) != (self.completed_at is not None):
-            raise ValueError("terminal quality runs require completed_at")
+            raise ValueError("终态质量运行必须填写 completed_at")
         if self.status == JobStatus.SUCCEEDED and self.report_id is None:
-            raise ValueError("succeeded quality runs require a report_id")
+            raise ValueError("成功的质量运行必须填写 report_id")
         return self
 
     def transition(
@@ -661,7 +661,7 @@ class QualityRun(DomainModel):
         error_message: str | None = None,
     ) -> QualityRun:
         if target not in JOB_TRANSITIONS[self.status]:
-            raise ValueError(f"illegal quality run transition: {self.status} -> {target}")
+            raise ValueError("非法的质量运行状态转换")
         changes: dict[str, Any] = {"status": target}
         if target in {JobStatus.SUCCEEDED, JobStatus.FAILED, JobStatus.CANCELLED}:
             changes["completed_at"] = occurred_at
@@ -709,13 +709,13 @@ class HardSampleImport(DomainModel):
     def terminal_status_is_consistent(self) -> HardSampleImport:
         terminal = {JobStatus.SUCCEEDED, JobStatus.FAILED, JobStatus.CANCELLED}
         if (self.status in terminal) != (self.completed_at is not None):
-            raise ValueError("terminal hard sample imports require completed_at")
+            raise ValueError("终态难例导入必须填写 completed_at")
         if self.status == JobStatus.FAILED and self.error_code is None:
-            raise ValueError("failed hard sample imports require an error_code")
+            raise ValueError("失败的难例导入必须填写 error_code")
         if self.status != JobStatus.FAILED and self.error_code is not None:
-            raise ValueError("only failed hard sample imports can carry an error_code")
+            raise ValueError("只有失败的难例导入可以携带 error_code")
         if len(self.sample_ids) != self.accepted_count:
-            raise ValueError("accepted_count must match the materialized sample count")
+            raise ValueError("accepted_count 必须与已物化样本数量一致")
         return self
 
 
@@ -732,7 +732,7 @@ class DatasetAccessGrant(DomainModel):
     @model_validator(mode="after")
     def expires_after_creation(self) -> DatasetAccessGrant:
         if self.expires_at <= self.created_at:
-            raise ValueError("access grant expires_at must be after created_at")
+            raise ValueError("访问授权的 expires_at 必须晚于 created_at")
         return self
 
 
@@ -755,7 +755,7 @@ class MigrationReport(DomainModel):
     def terminal_report_is_consistent(self) -> MigrationReport:
         terminal = {JobStatus.SUCCEEDED, JobStatus.FAILED, JobStatus.CANCELLED}
         if (self.status in terminal) != (self.completed_at is not None):
-            raise ValueError("terminal migration reports require completed_at")
+            raise ValueError("终态迁移报告必须填写 completed_at")
         return self
 
 
@@ -771,12 +771,12 @@ class MigrationFileEntry(DomainModel):
     def portable_relative_file(cls, value: str) -> str:
         parts = value.split("/")
         if value.startswith(("/", "\\")) or "\\" in value or ":" in value or any(part in {"", ".", ".."} for part in parts):
-            raise ValueError("migration package entries must use portable relative paths")
+            raise ValueError("迁移包条目必须使用可移植的相对路径")
         return value
 
 
 class MigrationPackageManifest(DomainModel):
-    """指南 13 定义的迁移包清单；Data 只导入 Core 生成的包，不连接 Core 数据库。"""
+    """指南 13 定义的迁移包清单；数据平台只导入 Core 生成的包，不连接 Core 数据库。"""
 
     schema_version: Literal["1.0"]
     source_repository: str = Field(min_length=1, max_length=128)
@@ -791,7 +791,7 @@ class MigrationPackageManifest(DomainModel):
     def unique_files(self) -> MigrationPackageManifest:
         names = [entry.file for entry in self.files]
         if len(set(names)) != len(names):
-            raise ValueError("migration package manifest cannot list the same file twice")
+            raise ValueError("迁移包清单不能重复列出同一个文件")
         return self
 
     def entry(self, name: str) -> MigrationFileEntry | None:

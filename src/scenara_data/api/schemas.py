@@ -54,7 +54,7 @@ class Page[T](ApiModel):
     next_cursor: str | None = None
 
 
-# ---------------------------------------------------------------------- Dataset
+# ---------------------------------------------------------------------- 数据集
 
 
 class CreateDatasetRequest(ApiModel):
@@ -114,7 +114,7 @@ class PublicationResponse(ApiModel):
 
 
 class DatasetVersionReference(ApiModel):
-    """`@scenara/repository-contracts` 1.0.0 `dataset-version-input`."""
+    """`@scenara/repository-contracts` 1.0.0 的 `dataset-version-input` 契约。"""
 
     schema_version: Literal["1.0"] = contracts.DATASET_VERSION_INPUT_SCHEMA_VERSION  # type: ignore[assignment]
     dataset_id: str
@@ -131,13 +131,13 @@ class DatasetVersionReference(ApiModel):
         suffix = f"#sha256={self.manifest_sha256}"
         alternate = f"@sha256:{self.manifest_sha256}"
         if not self.manifest_uri.endswith((suffix, alternate)):
-            raise ValueError("manifest_uri digest must match manifest_sha256")
+            raise ValueError("manifest_uri 中的摘要必须与 manifest_sha256 一致")
         if any("#sha256=" not in item and "@sha256:" not in item for item in self.lineage_refs):
-            raise ValueError("lineage_refs must be immutable digest references")
+            raise ValueError("lineage_refs 必须是带摘要的不可变引用")
         return self
 
 
-# ----------------------------------------------------------------------- Sample
+# ------------------------------------------------------------------------ 样本
 
 
 class CreateSampleRequest(ApiModel):
@@ -156,7 +156,7 @@ class CreateSampleRequest(ApiModel):
     captured_at: datetime | None = None
 
 
-# ------------------------------------------------------------------- Annotation
+# ------------------------------------------------------------------------ 标注
 
 
 class CreateAnnotationRequest(ApiModel):
@@ -214,7 +214,7 @@ class CreateAnnotationProviderRequest(ApiModel):
     endpoint: str | None = Field(default=None, max_length=2048)
 
 
-# -------------------------------------------------------------------- Quality
+# -------------------------------------------------------------------- 数据质量
 
 
 class CreateQualityRuleRequest(ApiModel):
@@ -241,7 +241,7 @@ class QualityRunResponse(ApiModel):
     quality_report: DataQualityReport
 
 
-# ---------------------------------------------------------------- Hard Sample
+# ------------------------------------------------------------------------ 难例
 
 
 class HardSampleContractItem(ApiModel):
@@ -265,7 +265,7 @@ class HardSampleContractItem(ApiModel):
 
 
 class HardSampleContractManifest(ApiModel):
-    """Published `hard-sample-handoff` 1.0.0 payload, without local extensions."""
+    """已发布的 `hard-sample-handoff` 1.0.0 载荷，不包含本地扩展字段。"""
 
     schema_version: Literal["1.0"] = contracts.HARD_SAMPLE_MANIFEST_SCHEMA_VERSION  # type: ignore[assignment]
     manifest_id: str
@@ -295,14 +295,14 @@ class HardSampleContractManifest(ApiModel):
     @model_validator(mode="after")
     def validate_handoff(self) -> HardSampleContractManifest:
         if self.sha256 != self.calculated_sha256():
-            raise ValueError("hard-sample manifest checksum does not match canonical content")
+            raise ValueError("难例清单校验和与规范化内容不一致")
         if any(not item.authorized_for_training or not item.deidentified for item in self.items):
-            raise ValueError("hard-sample items must be authorized and deidentified")
+            raise ValueError("难例条目必须已授权且已脱敏")
         return self
 
 
 class HardSampleSource(ApiModel):
-    """Transport metadata used to materialize a contract item into Data-owned storage."""
+    """把契约条目物化到数据平台自有存储时使用的传输元数据。"""
 
     feedback_id: str
     source_ref: ObjectReference
@@ -335,9 +335,9 @@ class HardSampleIntakeRequest(ApiModel):
         feedback_ids = [item.feedback_id for item in self.manifest.items]
         source_ids = [item.feedback_id for item in self.sources]
         if len(set(feedback_ids)) != len(feedback_ids):
-            raise ValueError("hard-sample manifest feedback_id values must be unique")
+            raise ValueError("难例清单中的 feedback_id 必须唯一")
         if len(set(source_ids)) != len(source_ids) or set(source_ids) != set(feedback_ids):
-            raise ValueError("hard-sample sources must match manifest items one-to-one")
+            raise ValueError("难例来源必须与清单条目一一对应")
         return self
 
 

@@ -261,7 +261,7 @@ class MigrationImportService(ApplicationService):
             )
         except InputValidationError as exc:
             # 包摘要和作用域已经验证完毕；后续记录格式错误应写入失败报告，供迁移方定位修复。
-            tally.fail(f"migration package validation failed: {exc.message}")
+            tally.fail(f"迁移包校验失败：{exc.message}")
         return self._close_report(report, tally, manifest, context, dry_run=dry_run)
 
     def get_report(self, migration_id: str, context: RequestContext) -> MigrationReport:
@@ -693,7 +693,7 @@ class MigrationImportService(ApplicationService):
             try:
                 record = MigrationAnnotationTaskRecord.model_validate(payload)
                 if record.status not in set(AnnotationTaskStatus):
-                    raise ValueError(f"unmapped annotation task status: {record.status}")
+                    raise ValueError(f"未映射的标注任务状态：{record.status}")
                 value = AnnotationTask(
                     task_id=record.task_id,
                     tenant_id=context.organization_id,
@@ -775,12 +775,12 @@ class MigrationImportService(ApplicationService):
         try:
             content = self._object_storage.read_verified(value.manifest_ref)
         except FileNotFoundError:
-            return f"Manifest 对象不存在：{value.manifest_ref.bucket}/{value.manifest_ref.key}"
+            return f"清单对象不存在：{value.manifest_ref.bucket}/{value.manifest_ref.key}"
         except ValueError as exc:
-            return f"Manifest 摘要校验失败：{exc}"
+            return f"清单摘要校验失败：{exc}"
         recomputed = f"sha256:{hashlib.sha256(content).hexdigest()}"
         if recomputed != value.manifest_ref.checksum:
-            return "重新计算的 Manifest 摘要与迁移包声明不一致"
+            return "重新计算的清单摘要与迁移包声明不一致"
         return None
 
     def _resolve_manifest_ref(
@@ -795,11 +795,11 @@ class MigrationImportService(ApplicationService):
             return record.manifest_ref
         entry = manifest.entry(record.manifest_file)
         if entry is None:
-            raise ValueError(f"manifest_file is not declared: {record.manifest_file}")
+            raise ValueError(f"manifest_file 未在清单中声明：{record.manifest_file}")
         content = package.read(record.manifest_file)
         digest = hashlib.sha256(content).hexdigest()
         if digest != entry.sha256:
-            raise ValueError(f"manifest_file checksum mismatch: {record.manifest_file}")
+            raise ValueError(f"manifest_file 校验和不匹配：{record.manifest_file}")
         key = f"migrations/manifests/{record.version_id}-{digest}.json"
         if dry_run:
             return ObjectReference(

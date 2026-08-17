@@ -1,4 +1,4 @@
-"""Data Quality 与 Data Lineage 内部 API（指南 6.5）。"""
+"""数据质量与数据血缘内部 API（指南 6.5）。"""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ from scenara_data.api.schemas import (
 )
 from scenara_data.domain.models import DataQualityReport, QualityRule, QualityRun
 
-router = APIRouter(prefix="/internal/v1", tags=["quality"])
+router = APIRouter(prefix="/internal/v1", tags=["数据质量"])
 
 
 @router.post(

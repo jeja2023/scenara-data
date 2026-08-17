@@ -1,1 +1,1 @@
-"""Infrastructure and cross-platform ports."""
+"""基础设施与跨平台端口。"""

@@ -32,7 +32,7 @@ def _schema(path: Path) -> Draft202012Validator:
 
 def _require(path: Path) -> Path:
     if not path.is_file():
-        raise SystemExit(f"missing contract artifact: {path}")
+        raise SystemExit(f"缺少契约制品：{path}")
     return path
 
 
@@ -45,7 +45,7 @@ def _contracts_root(path: Path | None) -> Path:
     env = Path.cwd() / "scenara-contracts"
     if env.is_dir():
         return env.resolve()
-    raise SystemExit("repository contracts checkout not found; pass --contracts-root")
+    raise SystemExit("未找到仓库契约检出目录，请传入 --contracts-root")
 
 
 def validate(contracts_root: Path) -> None:
@@ -54,8 +54,8 @@ def validate(contracts_root: Path) -> None:
     digest = sha256(release_manifest.read_bytes()).hexdigest()
     if digest != CONTRACT_MANIFEST_SHA256:
         raise SystemExit(
-            "published repository contract manifest digest mismatch: "
-            f"expected {CONTRACT_MANIFEST_SHA256}, got {digest}"
+            "已发布仓库契约清单的摘要不匹配："
+            f"预期 {CONTRACT_MANIFEST_SHA256}，实际 {digest}"
         )
 
     published = _json(release_manifest)
@@ -63,16 +63,16 @@ def validate(contracts_root: Path) -> None:
     required = {"dataset-version-input", "hard-sample-handoff"}
     if not required.issubset(contracts):
         missing = ", ".join(sorted(required - set(contracts)))
-        raise SystemExit(f"published repository contracts are missing required entries: {missing}")
+        raise SystemExit(f"已发布仓库契约缺少必需条目：{missing}")
 
     for contract_id in sorted(required):
         entry = contracts[contract_id]
         schema_path = _require(contracts_root / str(entry["schema_path"]))
         example_path = _require(contracts_root / str(entry["example_path"]))
         if sha256(schema_path.read_bytes()).hexdigest() != str(entry["schema_sha256"]):
-            raise SystemExit(f"{contract_id} schema digest does not match manifest")
+            raise SystemExit(f"{contract_id} 模式摘要与清单不一致")
         if sha256(example_path.read_bytes()).hexdigest() != str(entry["example_sha256"]):
-            raise SystemExit(f"{contract_id} example digest does not match manifest")
+            raise SystemExit(f"{contract_id} 示例摘要与清单不一致")
         validator = _schema(schema_path)
         example = _json(example_path)
         validator.validate(example)
@@ -87,10 +87,10 @@ def main(argv: list[str] | None = None) -> int:
     contracts_root = None
     if arguments:
         if len(arguments) != 2 or arguments[0] != "--contracts-root":
-            raise SystemExit("usage: python scripts/validate_repository_contracts.py [--contracts-root PATH]")
+            raise SystemExit("用法：python scripts/validate_repository_contracts.py [--contracts-root PATH]")
         contracts_root = Path(arguments[1])
     validate(_contracts_root(contracts_root))
-    print("repository contracts validated")
+    print("仓库契约校验通过")
     return 0
 
 

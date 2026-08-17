@@ -73,14 +73,14 @@ class _JsonFormatter(logging.Formatter):
             "message": record.getMessage(),
         }
         if record.exc_info:
-            body["error_type"] = record.exc_info[0].__name__ if record.exc_info[0] else "unknown"
+            body["error_type"] = record.exc_info[0].__name__ if record.exc_info[0] else "未知"
         return json.dumps(body, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
 
 
 def utc_rfc3339(moment: datetime | None = None) -> str:
     value = moment or datetime.now(UTC)
     if value.tzinfo is None:
-        raise ValueError("log timestamps must include a timezone")
+        raise ValueError("日志时间戳必须包含时区")
     return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 

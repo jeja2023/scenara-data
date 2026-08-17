@@ -31,26 +31,26 @@ REQUIRED_PATHS = (
 
 
 def main() -> int:
-    problems = [f"missing required path: {path}" for path in REQUIRED_PATHS if not (ROOT / path).exists()]
+    problems = [f"缺少必需路径：{path}" for path in REQUIRED_PATHS if not (ROOT / path).exists()]
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     config = (ROOT / "src/scenara_data/config.py").read_text(encoding="utf-8")
     declared = re.search(r'DECLARED_MATURITY\s*=\s*"([a-z_]+)"', config)
     maturity = declared.group(1) if declared else None
     if maturity not in {"seed", "implemented", "qualified", "production_ready"}:
-        problems.append("config must declare a registered maturity")
+        problems.append("配置必须声明已登记的成熟度")
     if maturity == "production_ready":
-        problems.append("repository gate cannot approve production_ready without environment evidence")
+        problems.append("缺少环境证据时，仓库门禁不能批准生产就绪状态")
     if maturity is not None and f"当前成熟度：`{maturity}`" not in readme:
-        problems.append("README maturity does not match config DECLARED_MATURITY")
-    if "责任团队：Scenara Data" not in readme:
-        problems.append("README must declare the responsible team")
+        problems.append("README 中的成熟度与配置项 DECLARED_MATURITY 不一致")
+    if "责任团队：景枢数据" not in readme:
+        problems.append("README 必须声明责任团队")
 
     lock = yaml.safe_load((ROOT / "configs/contracts/repository-contracts.yml").read_text(encoding="utf-8"))
     if lock.get("version") != "1.0.0":
-        problems.append("repository contract version must be pinned to 1.0.0")
+        problems.append("仓库契约版本必须固定为 1.0.0")
     if lock.get("manifest_sha256") != "4b070ce7e8d11f6c21641559c844b736482fa38e726b0778eb2d9c2834feecd6":
-        problems.append("repository contract manifest digest does not match the published release")
+        problems.append("仓库契约清单摘要与已发布版本不一致")
 
     contracts_root = ROOT / "scenara-contracts"
     if not contracts_root.is_dir():
@@ -68,19 +68,19 @@ def main() -> int:
             text=True,
         )
         if result.returncode != 0:
-            detail = (result.stdout + result.stderr).strip() or "repository contracts validation failed"
+            detail = (result.stdout + result.stderr).strip() or "仓库契约校验失败"
             problems.append(detail)
 
     forbidden = re.compile(r"\b(?:from|import)\s+(?:scenara|scenara_model)\b")
     for path in (ROOT / "src").rglob("*.py"):
         if forbidden.search(path.read_text(encoding="utf-8")):
-            problems.append(f"forbidden cross-repository source import: {path.relative_to(ROOT)}")
+            problems.append(f"禁止跨仓库导入源代码：{path.relative_to(ROOT)}")
 
     if problems:
         for problem in problems:
             print(problem)
         return 1
-    print("repository gate passed")
+    print("仓库门禁检查通过")
     return 0
 
 

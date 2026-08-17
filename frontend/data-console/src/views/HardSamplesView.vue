@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from "vue";
 import { FlaskConical, RefreshCw, Search, Upload } from "@lucide/vue";
 
 import {
+  loadConnection,
   getHardSampleImport,
   intakeHardSamples,
   listSamples,
@@ -14,7 +15,9 @@ import {
 import type { HardSampleContractManifest } from "../types";
 import {
   formatTimestamp,
+  labelHardSampleKind,
   labelHardSampleImportStatus,
+  labelSampleSplit,
   shortHash,
 } from "../labels";
 import { useRefresh } from "../composables/useRefresh";
@@ -34,7 +37,7 @@ const manifestDraft = reactive({
   version: "1.0.0",
   label_schema: "scenara.feedback.correction.v1",
   split: "train" as "train" | "validation" | "test",
-  created_by: "data-console",
+  created_by: "景枢数据控制台",
   publish: false,
   build_version: "",
   annotation_schema_id: "",
@@ -84,7 +87,7 @@ function clearFeedback(): void {
 function parseJson(value: string): Record<string, unknown> {
   const parsed = JSON.parse(value) as unknown;
   if (parsed === null || Array.isArray(parsed) || typeof parsed !== "object") {
-    throw new Error("correction must be a JSON object");
+    throw new Error("纠正内容必须是 JSON 对象");
   }
   return parsed as Record<string, unknown>;
 }
@@ -160,11 +163,12 @@ async function submit(): Promise<void> {
   saving.value = true;
   clearFeedback();
   try {
+    const connection = loadConnection();
     const manifestPayload = {
       schema_version: "1.0" as const,
       manifest_id: manifestDraft.manifest_id.trim(),
-      tenant_id: "default",
-      project_id: "default",
+      tenant_id: connection.tenantId,
+      project_id: connection.projectId,
       dataset_id: manifestDraft.dataset_id.trim(),
       version: manifestDraft.version.trim(),
       label_schema: manifestDraft.label_schema.trim(),
@@ -278,13 +282,13 @@ useRefresh(refresh);
             <option value="">手动填写</option>
             <option v-for="sample in samples" :key="sample.sample_id" :value="sample.sample_id">{{ sample.sample_id }} · {{ sample.media_type }}</option>
           </select></label>
-          <label><span>Manifest ID</span><input v-model="manifestDraft.manifest_id" placeholder="hsm_20260816_001" /></label>
+          <label><span>清单 ID</span><input v-model="manifestDraft.manifest_id" placeholder="hsm_20260816_001" /></label>
           <label><span>数据集 ID</span><input v-model="manifestDraft.dataset_id" placeholder="dst_20260816" /></label>
           <label><span>版本</span><input v-model="manifestDraft.version" placeholder="1.0.0" /></label>
-          <label><span>标签 schema</span><input v-model="manifestDraft.label_schema" /></label>
-          <label><span>分割</span><select v-model="manifestDraft.split"><option value="train">train</option><option value="validation">validation</option><option value="test">test</option></select></label>
+          <label><span>标签模式</span><input v-model="manifestDraft.label_schema" /></label>
+          <label><span>分割</span><select v-model="manifestDraft.split"><option value="train">{{ labelSampleSplit("train") }}</option><option value="validation">{{ labelSampleSplit("validation") }}</option><option value="test">{{ labelSampleSplit("test") }}</option></select></label>
           <label><span>构建版本</span><input v-model="manifestDraft.build_version" placeholder="1.0.0" /></label>
-          <label><span>注解 schema</span><input v-model="manifestDraft.annotation_schema_id" placeholder="scenara.feedback.correction.v1" /></label>
+          <label><span>注解模式</span><input v-model="manifestDraft.annotation_schema_id" placeholder="scenara.feedback.correction.v1" /></label>
           <label><span>创建者</span><input v-model="manifestDraft.created_by" /></label>
           <label class="toggle"><input v-model="manifestDraft.publish" type="checkbox" />提交后直接发布</label>
         </div>
@@ -292,7 +296,7 @@ useRefresh(refresh);
         <div class="section-title">条目与来源</div>
         <div class="form-grid compact-grid">
           <label><span>反馈 ID</span><input v-model="itemDraft.feedback_id" /></label>
-          <label><span>类型</span><select v-model="itemDraft.kind"><option value="false_positive">false_positive</option><option value="false_negative">false_negative</option><option value="wrong_attribute">wrong_attribute</option><option value="wrong_identity">wrong_identity</option><option value="ocr_correction">ocr_correction</option></select></label>
+          <label><span>类型</span><select v-model="itemDraft.kind"><option value="false_positive">{{ labelHardSampleKind("false_positive") }}</option><option value="false_negative">{{ labelHardSampleKind("false_negative") }}</option><option value="wrong_attribute">{{ labelHardSampleKind("wrong_attribute") }}</option><option value="wrong_identity">{{ labelHardSampleKind("wrong_identity") }}</option><option value="ocr_correction">{{ labelHardSampleKind("ocr_correction") }}</option></select></label>
           <label><span>媒体引用</span><input v-model="itemDraft.media_ref" /></label>
           <label><span>结果引用</span><input v-model="itemDraft.result_ref" /></label>
           <label><span>模型 ID</span><input v-model="itemDraft.model_id" /></label>
@@ -306,20 +310,20 @@ useRefresh(refresh);
 
         <div class="form-grid compact-grid divider-top">
           <label><span>源桶</span><input v-model="sourceDraft.bucket" /></label>
-          <label><span>源 Key</span><input v-model="sourceDraft.key" /></label>
+          <label><span>源对象键</span><input v-model="sourceDraft.key" /></label>
           <label><span>版本</span><input v-model="sourceDraft.version" /></label>
-          <label><span>Checksum</span><input v-model="sourceDraft.checksum" /></label>
-          <label><span>大小(bytes)</span><input v-model.number="sourceDraft.size_bytes" type="number" min="0" /></label>
-          <label><span>Content-Type</span><input v-model="sourceDraft.content_type" /></label>
-          <label><span>source_result_id</span><input v-model="sourceDraft.source_result_id" /></label>
+          <label><span>校验和</span><input v-model="sourceDraft.checksum" /></label>
+          <label><span>大小(字节)</span><input v-model.number="sourceDraft.size_bytes" type="number" min="0" /></label>
+          <label><span>内容类型</span><input v-model="sourceDraft.content_type" /></label>
+          <label><span>源结果 ID</span><input v-model="sourceDraft.source_result_id" /></label>
           <label><span>资源类型</span><input v-model="sourceDraft.source_resource_type" /></label>
           <label><span>媒体类型</span><input v-model="sourceDraft.media_type" /></label>
-          <label><span>person_id</span><input v-model="sourceDraft.person_id" /></label>
-          <label><span>camera_id</span><input v-model="sourceDraft.camera_id" /></label>
-          <label><span>bbox</span><input v-model="sourceDraft.bbox" placeholder="1,2,30,40" /></label>
-          <label><span>dataset_split</span><select v-model="sourceDraft.dataset_split"><option value="train">train</option><option value="query">query</option><option value="gallery">gallery</option></select></label>
-          <label><span>captured_at</span><input v-model="sourceDraft.captured_at" placeholder="2026-08-16T12:00:00Z" /></label>
-          <label class="span-2"><span>occurred_at</span><input v-model="sourceDraft.occurred_at" /></label>
+          <label><span>人员 ID</span><input v-model="sourceDraft.person_id" /></label>
+          <label><span>摄像机 ID</span><input v-model="sourceDraft.camera_id" /></label>
+          <label><span>边界框</span><input v-model="sourceDraft.bbox" placeholder="1,2,30,40" /></label>
+          <label><span>数据分割</span><select v-model="sourceDraft.dataset_split"><option value="train">{{ labelSampleSplit("train") }}</option><option value="query">{{ labelSampleSplit("query") }}</option><option value="gallery">{{ labelSampleSplit("gallery") }}</option></select></label>
+          <label><span>采集时间</span><input v-model="sourceDraft.captured_at" placeholder="2026-08-16T12:00:00Z" /></label>
+          <label class="span-2"><span>发生时间</span><input v-model="sourceDraft.occurred_at" /></label>
         </div>
 
         <div class="panel-footer">
@@ -356,7 +360,7 @@ useRefresh(refresh);
               <p class="mono">{{ latestImport.annotation_task_ids.join(', ') || '-' }}</p>
             </div>
             <div>
-              <span>Manifest</span>
+              <span>清单摘要</span>
               <p class="mono">{{ shortHash(latestImport.manifest_checksum) }}</p>
             </div>
           </div>

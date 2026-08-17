@@ -1,4 +1,4 @@
-"""Dataset Version 内部 API：状态转换、发布、Manifest、引用与访问授权（指南 11.1、11.2）。"""
+"""数据集版本内部 API：状态转换、发布、清单、引用与访问授权（指南 11.1、11.2）。"""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from scenara_data.api.schemas import (
 from scenara_data.application.errors import ApplicationError
 from scenara_data.domain.models import DatasetVersion, DatasetVersionStatus, LineageSnapshot
 
-router = APIRouter(prefix="/internal/v1/dataset-versions", tags=["dataset-versions"])
+router = APIRouter(prefix="/internal/v1/dataset-versions", tags=["数据集版本"])
 
 
 @router.get(
@@ -99,7 +99,7 @@ def transition_dataset_version(
     "/{dataset_version_id}/samples",
     response_model=DatasetVersion,
     responses=ERROR_RESPONSES,
-    summary="向 building 版本加入样本",
+    summary="向构建中的版本加入样本",
 )
 def add_sample_to_version(
     dataset_version_id: str,
@@ -136,7 +136,7 @@ def list_version_samples(
     "/{dataset_version_id}/validate",
     response_model=ValidationResponse,
     responses=ERROR_RESPONSES,
-    summary="执行质量验证并推进到 ready",
+    summary="执行质量验证并推进到就绪状态",
 )
 def validate_dataset_version(
     dataset_version_id: str,
@@ -187,7 +187,7 @@ def publish_dataset_version(
     "/{dataset_version_id}/reference",
     response_model=DatasetVersionReference,
     responses=ERROR_RESPONSES,
-    summary="向模型平台输出 DatasetVersionReference",
+    summary="向模型平台输出数据集版本引用",
 )
 def get_dataset_version_reference(
     dataset_version_id: str, container: ContainerDep, context: ContextDep
@@ -198,7 +198,7 @@ def get_dataset_version_reference(
 @router.get(
     "/{dataset_version_id}/manifest",
     responses=ERROR_RESPONSES,
-    summary="下载已校验摘要的不可变 Manifest",
+    summary="下载已校验摘要的不可变清单",
 )
 def get_dataset_version_manifest(
     dataset_version_id: str, container: ContainerDep, context: ContextDep

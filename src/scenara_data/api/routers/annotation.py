@@ -1,4 +1,4 @@
-"""Annotation 内部 API：标注、追加式修订、任务、分派、复核与服务商（指南 11.1）。"""
+"""标注内部 API：标注、追加式修订、任务、分派、复核与服务商（指南 11.1）。"""
 
 from __future__ import annotations
 
@@ -39,7 +39,7 @@ from scenara_data.domain.models import (
     AnnotationTaskStatus,
 )
 
-router = APIRouter(prefix="/internal/v1", tags=["annotations"])
+router = APIRouter(prefix="/internal/v1", tags=["标注"])
 
 
 @router.post(

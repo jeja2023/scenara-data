@@ -1,4 +1,4 @@
-"""Dataset Builder（指南 2、M6）。
+"""数据集构建器（指南 2、M6）。
 
 Builder 只编排既有 Dataset Version 状态机：创建版本 -> building -> 加入样本 -> 质量验证 ->
 可选发布。它不绕过不可变性、质量门禁和审计。

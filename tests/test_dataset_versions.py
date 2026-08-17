@@ -43,17 +43,17 @@ def test_dataset_version_requires_legal_state_transitions() -> None:
 
     assert published.status == DatasetVersionStatus.PUBLISHED
     assert published.manifest_ref == manifest_ref()
-    with pytest.raises(ValueError, match="illegal dataset version transition"):
+    with pytest.raises(ValueError, match="非法的数据集版本状态转换"):
         published.transition(DatasetVersionStatus.READY)
 
 
 def test_published_version_cannot_exist_without_manifest() -> None:
-    with pytest.raises(ValidationError, match="immutable manifest"):
+    with pytest.raises(ValidationError, match="不可变清单"):
         version(DatasetVersionStatus.PUBLISHED)
 
 
 def test_domain_timestamps_require_timezone() -> None:
-    with pytest.raises(ValidationError, match="timezone"):
+    with pytest.raises(ValidationError, match="时区"):
         DatasetVersion(
             dataset_version_id="dsv_example",
             dataset_id="dataset.example",
@@ -64,7 +64,7 @@ def test_domain_timestamps_require_timezone() -> None:
 
 
 def test_object_reference_rejects_local_paths() -> None:
-    with pytest.raises(ValidationError, match="portable object key"):
+    with pytest.raises(ValidationError, match="可移植的对象键"):
         ObjectReference(
             bucket="scenara-datasets",
             key="C:\\data\\manifest.json",

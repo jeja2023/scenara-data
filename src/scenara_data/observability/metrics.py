@@ -1,4 +1,4 @@
-"""Provider 中立指标注册表（指南 11.3 `GET /metrics`）。
+"""提供方中立指标注册表（指南 11.3 `GET /metrics`）。
 
 业务代码只依赖 `MetricsRegistry`，不绑定具体导出实现。第一阶段以 Prometheus 文本格式
 暴露；OpenTelemetry 导出接入见 `docs/adr/0005-observability-baseline.md`。
@@ -50,7 +50,7 @@ class MetricsRegistry:
 
     def increment(self, name: str, *, labels: dict[str, str] | None = None, value: float = 1.0) -> None:
         if value < 0:
-            raise ValueError("counters cannot decrease")
+            raise ValueError("计数器不能递减")
         identity = (name, _normalize(labels))
         with self._lock:
             self._counters[identity] = self._counters.get(identity, 0.0) + value
@@ -140,7 +140,7 @@ def render_prometheus(registry: MetricsRegistry) -> str:
             lines.append(f"{name}_sum{_render_labels(labels)} {_format_number(sums.get((metric, labels), 0.0))}")
             lines.append(f"{name}_count{_render_labels(labels)} {_format_number(float(total))}")
 
-    return "\n".join(lines) + "\n" if lines else "# no metrics recorded\n"
+    return "\n".join(lines) + "\n" if lines else "# 尚未记录指标\n"
 
 
 def _format_number(value: float) -> str:

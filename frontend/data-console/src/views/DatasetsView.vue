@@ -25,6 +25,7 @@ import {
   formatTimestamp,
   labelDatasetStatus,
   labelDatasetVersionStatus,
+  labelSampleSplit,
   shortHash,
 } from "../labels";
 import { useRefresh } from "../composables/useRefresh";
@@ -129,9 +130,8 @@ async function submitDataset(): Promise<void> {
     datasetForm.name = "";
     datasetForm.description = "";
     message.value = `已创建数据集 ${created.name}`;
-    await refresh();
     selectedDatasetId.value = created.dataset_id;
-    await loadVersions(created.dataset_id);
+    await refresh();
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : "创建数据集失败";
   } finally {
@@ -181,20 +181,24 @@ async function transitionVersion(
   saving.value = true;
   clearFeedback();
   try {
+    let updatedStatus: DatasetVersion["status"] = status;
     if (status === "ready") {
-      await validateDatasetVersion(version.dataset_version_id);
+      const response = await validateDatasetVersion(version.dataset_version_id);
+      updatedStatus = response.dataset_version.status;
     } else if (status === "published") {
-      await publishDatasetVersion(version.dataset_version_id);
+      const response = await publishDatasetVersion(version.dataset_version_id);
+      updatedStatus = response.dataset_version.status;
     } else {
-      await api<DatasetVersion>(
+      const response = await api<DatasetVersion>(
         `/internal/v1/dataset-versions/${encodeURIComponent(version.dataset_version_id)}/transition`,
         {
           method: "POST",
           body: JSON.stringify({ status }),
         },
       );
+      updatedStatus = response.status;
     }
-    message.value = `版本状态已切换为 ${labelDatasetVersionStatus(status)}`;
+    message.value = `版本状态已切换为 ${labelDatasetVersionStatus(updatedStatus)}`;
     await loadVersions(selectedDatasetId.value);
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : "版本状态更新失败";
@@ -220,10 +224,6 @@ async function addSelectedSampleToVersion(): Promise<void> {
     saving.value = false;
   }
 }
-
-watch(selectedDatasetId, async (datasetId) => {
-  if (datasetId) await loadVersions(datasetId);
-});
 
 onMounted(refresh);
 useRefresh(refresh);
@@ -305,7 +305,13 @@ useRefresh(refresh);
           <button class="button primary" :disabled="saving || !selectedDatasetId || !versionForm.version.trim()" @click="submitVersion">
             <Plus :size="16" />创建版本
           </button>
-          <button class="button secondary" :disabled="saving || !selectedVersion" @click="transitionVersion(selectedVersion!, 'building')">进入构建</button>
+          <button
+            class="button secondary"
+            :disabled="saving || !selectedVersion || !['draft', 'failed'].includes(selectedVersion.status)"
+            @click="transitionVersion(selectedVersion!, 'building')"
+          >
+            进入构建
+          </button>
         </div>
         <div class="table-scroll">
           <table class="data-table">
@@ -334,9 +340,9 @@ useRefresh(refresh);
                 <td class="mono truncate">{{ shortHash(version.manifest_sha256 || '') }}</td>
                 <td>
                   <div class="table-actions">
-                    <button class="button secondary" :disabled="saving || version.status === 'published'" @click.stop="transitionVersion(version, 'ready')">校验</button>
+                    <button class="button secondary" :disabled="saving || version.status !== 'building'" @click.stop="transitionVersion(version, 'ready')">校验</button>
                     <button class="button primary" :disabled="saving || version.status !== 'ready'" @click.stop="transitionVersion(version, 'published')">发布</button>
-                    <button class="button secondary" :disabled="saving || version.status === 'archived'" @click.stop="transitionVersion(version, 'archived')">归档</button>
+                    <button class="button secondary" :disabled="saving || version.status !== 'published'" @click.stop="transitionVersion(version, 'archived')">归档</button>
                   </div>
                 </td>
               </tr>
@@ -359,6 +365,7 @@ useRefresh(refresh);
               <tr>
                 <th></th>
                 <th>样本</th>
+                <th>分割</th>
                 <th>类型</th>
                 <th>来源</th>
                 <th>时间</th>
@@ -369,13 +376,14 @@ useRefresh(refresh);
                 <td><input v-model="selectedSamples" :value="sample.sample_id" type="checkbox" /></td>
                 <td>
                   <strong>{{ sample.sample_id }}</strong>
-                  <div class="mono muted">{{ sample.source_resource_id || sample.source_system || 'source' }}</div>
+                  <div class="mono muted">{{ sample.source_resource_id || sample.source_system || '来源' }}</div>
                 </td>
+                <td>{{ labelSampleSplit(sample.dataset_split) }}</td>
                 <td>{{ sample.media_type }}</td>
                 <td>{{ sample.source_ref.bucket }}/{{ sample.source_ref.key }}</td>
                 <td>{{ formatTimestamp(sample.created_at) }}</td>
               </tr>
-              <tr v-if="!samples.length"><td colspan="5" class="empty">暂无样本</td></tr>
+              <tr v-if="!samples.length"><td colspan="6" class="empty">暂无样本</td></tr>
             </tbody>
           </table>
         </div>
@@ -397,7 +405,7 @@ useRefresh(refresh);
             <div><dt>版本</dt><dd>{{ manifestReference.version }}</dd></div>
             <div><dt>摘要</dt><dd class="mono">{{ shortHash(manifestReference.manifest_sha256) }}</dd></div>
             <div><dt>授权</dt><dd>{{ manifestReference.authorization_id }}</dd></div>
-            <div><dt>模型仓库</dt><dd>{{ manifestReference.authorized_consumer_repository_ids.join(', ') }}</dd></div>
+            <div><dt>模型仓库</dt><dd>{{ manifestReference.authorized_consumer_repository_ids.join('，') }}</dd></div>
             <div><dt>生成时间</dt><dd>{{ formatTimestamp(manifestReference.created_at * 1000) }}</dd></div>
           </dl>
           <p class="muted tiny">{{ manifestReference.manifest_uri }}</p>

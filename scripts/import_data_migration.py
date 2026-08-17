@@ -12,7 +12,7 @@ from scenara_data.ports.interfaces import RequestContext
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Import a checksummed Scenara Core migration package")
+    parser = argparse.ArgumentParser(description="导入经过校验和验证的景枢 Core 迁移包")
     parser.add_argument("--package", required=True, type=Path)
     parser.add_argument("--tenant-id", required=True)
     parser.add_argument("--project-id", required=True)

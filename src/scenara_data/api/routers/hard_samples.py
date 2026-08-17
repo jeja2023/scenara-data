@@ -1,4 +1,4 @@
-"""Hard Sample 承接内部 API（指南 11.1、14）。"""
+"""难例承接内部 API（指南 11.1、14）。"""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from scenara_data.application.hard_samples import IntakeResult
 from scenara_data.domain.models import HardSampleHandoff, HardSampleImport, HardSampleManifest
 from scenara_data.ports.interfaces import RequestContext
 
-router = APIRouter(prefix="/internal/v1", tags=["hard-samples"])
+router = APIRouter(prefix="/internal/v1", tags=["难例"])
 
 
 @router.post(
