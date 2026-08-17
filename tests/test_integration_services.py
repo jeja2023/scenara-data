@@ -22,7 +22,7 @@ def integration_settings() -> Settings:
         runtime_mode="postgres",
         database_url=os.getenv(
             "SCENARA_DATA_INTEGRATION_DATABASE_URL",
-            "postgresql://scenara_data:scenara-integration@127.0.0.1:5432/scenara_data",
+            "postgresql://scenara_data:data-dev-only@127.0.0.1:5432/scenara_data",
         ),
         redis_url=os.getenv("SCENARA_DATA_INTEGRATION_REDIS_URL", "redis://127.0.0.1:6379/1"),
         object_storage_endpoint=os.getenv(

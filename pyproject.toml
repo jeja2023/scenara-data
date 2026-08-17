@@ -20,8 +20,10 @@ s3 = ["boto3>=1.35"]
 redis = ["redis>=5.2"]
 http = ["httpx>=0.28"]
 dev = [
+  "cryptography>=43",
   "httpx>=0.28",
   "jsonschema>=4.25",
+  "pillow>=10",
   "pytest>=8",
   "pytest-asyncio>=0.24",
   "ruff>=0.8",

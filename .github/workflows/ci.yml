@@ -52,6 +52,11 @@ jobs:
       - run: python -m pytest -m integration tests/test_integration_services.py
         env:
           SCENARA_RUN_INTEGRATION: "1"
+          SCENARA_DATA_INTEGRATION_DATABASE_URL: "postgresql://scenara_data:data-dev-only@127.0.0.1:5432/scenara_data"
+          SCENARA_DATA_INTEGRATION_REDIS_URL: "redis://127.0.0.1:6379/1"
+          SCENARA_DATA_INTEGRATION_S3_ENDPOINT_URL: "http://127.0.0.1:9000"
+          SCENARA_DATA_INTEGRATION_S3_ACCESS_KEY_ID: "scenara-data"
+          SCENARA_DATA_INTEGRATION_S3_SECRET_ACCESS_KEY: "data-dev-only"
       - name: Stop integration services
         if: always()
         run: docker compose -f deploy/compose.yml down --volumes --remove-orphans
