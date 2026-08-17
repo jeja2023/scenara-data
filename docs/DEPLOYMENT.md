@@ -14,6 +14,8 @@ docker compose -f deploy/compose.yml up --build
 
 数据平台前端采用独立 Vue 3 + Vite 工作台，当前版本为 `0.1.4`，目录为 `frontend/data-console`。工作台已完成全面中文化，并提供总览、数据集、版本治理、难例导入和运维探针页面。开发时可通过 `VITE_DATA_API_BASE` 指定后端地址，例如 `http://127.0.0.1:8082`。
 
+工作台登录入口为 `/login`，本地账号由后端环境变量控制：`SCENARA_DATA_CONSOLE_USERNAME` 默认 `admin`，`SCENARA_DATA_CONSOLE_PASSWORD` 未设置时复用 `SCENARA_DATA_TRUSTED_SERVICE_TOKEN`，`SCENARA_DATA_CONSOLE_TENANT_ID` 和 `SCENARA_DATA_CONSOLE_PROJECT_ID` 控制登录会话的默认租户与项目。生产接入仍应由 Core 统一门户和网关提供正式身份事实。
+
 工作台启动后会分别请求 `/readyz`、`/health` 和业务列表接口。业务列表发生分页校验失败时，页面会保留真实探针状态并展示业务错误；列表请求应使用后端契约允许的 `limit=100`。移动端部署验收应覆盖顶部导航、连接设置、导航抽屉、长文本换行和表格横向滚动。
 
 正式环境必须使用受管密钥、非 root 容器、网络隔离、TLS、最小权限服务账号和独立备份策略。

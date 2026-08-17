@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from scenara_data.api.routers import (
     annotation,
+    auth,
     dataset_versions,
     datasets,
     hard_samples,
@@ -19,6 +20,7 @@ from scenara_data.api.routers import (
 #: 注册顺序即 OpenAPI 文档顺序。
 ROUTERS = (
     operations.router,
+    auth.router,
     datasets.router,
     dataset_versions.router,
     samples.router,

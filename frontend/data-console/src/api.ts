@@ -29,12 +29,35 @@ export interface ConnectionSettings {
   entitlements: string;
 }
 
+export interface LoginSessionInfo {
+  session_id: string;
+  tenant_id: string;
+  project_id: string;
+  user_id: string;
+  principal_type: "user" | "service_account";
+  permission_scopes: string[];
+  product_entitlements: string[];
+  issued_at: number;
+  expires_at: number;
+}
+
+export interface LoginResponse {
+  token: string;
+  username: string;
+  role: string;
+  expires_at: number;
+  session: LoginSessionInfo;
+}
+
 const STORAGE_KEY = "scenara.data.console.connection.v1";
+const SESSION_TOKEN_KEY = "scenara.data.console.token.session.v1";
+const PERSISTENT_TOKEN_KEY = "scenara.data.console.token.local.v1";
+const AUTH_EXPIRED_EVENT = "scenara:data-auth-expired";
 const API_PAGE_LIMIT = 100;
 
 const defaults: ConnectionSettings = {
   apiBase: import.meta.env.VITE_DATA_API_BASE ?? "http://127.0.0.1:8081",
-  token: "scenara-data-dev-token",
+  token: "",
   tenantId: "default",
   projectId: "default",
   principalId: "data-console",
@@ -60,14 +83,57 @@ export function loadConnection(): ConnectionSettings {
     const stored = JSON.parse(
       localStorage.getItem(STORAGE_KEY) ?? "{}",
     ) as Partial<ConnectionSettings>;
-    return { ...defaults, ...stored };
+    return {
+      ...defaults,
+      ...stored,
+      token:
+        sessionStorage.getItem(SESSION_TOKEN_KEY) ??
+        localStorage.getItem(PERSISTENT_TOKEN_KEY) ??
+        stored.token ??
+        "",
+    };
   } catch {
     return { ...defaults };
   }
 }
 
-export function saveConnection(value: ConnectionSettings): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+export function saveConnection(
+  value: ConnectionSettings,
+  options: { persistAuth?: boolean } = {},
+): void {
+  const { token, ...context } = value;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(context));
+  sessionStorage.removeItem(SESSION_TOKEN_KEY);
+  localStorage.removeItem(PERSISTENT_TOKEN_KEY);
+  if (!token) return;
+  const persistAuth = options.persistAuth ?? connectionTokenIsPersistent();
+  const storage = persistAuth ? localStorage : sessionStorage;
+  storage.setItem(persistAuth ? PERSISTENT_TOKEN_KEY : SESSION_TOKEN_KEY, token);
+}
+
+export function connectionTokenIsPersistent(): boolean {
+  return localStorage.getItem(PERSISTENT_TOKEN_KEY) !== null;
+}
+
+export function clearConnectionToken(): void {
+  sessionStorage.removeItem(SESSION_TOKEN_KEY);
+  localStorage.removeItem(PERSISTENT_TOKEN_KEY);
+  try {
+    const stored = JSON.parse(
+      localStorage.getItem(STORAGE_KEY) ?? "{}",
+    ) as Partial<ConnectionSettings>;
+    if ("token" in stored) {
+      delete stored.token;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
+    }
+  } catch {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+}
+
+function notifyAuthExpired(): void {
+  clearConnectionToken();
+  window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
 }
 
 export function connectionSummary(value: ConnectionSettings): string {
@@ -84,8 +150,11 @@ function buildHeaders(
   connection: ConnectionSettings,
 ): Headers {
   const headers = new Headers(init.headers);
+  const method = (init.method ?? "GET").toUpperCase();
   headers.set("Accept", "application/json");
-  headers.set("Authorization", `Bearer ${connection.token}`);
+  if (connection.token) {
+    headers.set("Authorization", `Bearer ${connection.token}`);
+  }
   headers.set("X-Scenara-Tenant-Id", connection.tenantId);
   headers.set("X-Scenara-Project-Id", connection.projectId);
   headers.set("X-Scenara-Principal-Id", connection.principalId);
@@ -94,6 +163,9 @@ function buildHeaders(
   headers.set("X-Scenara-Product-Entitlements", connection.entitlements);
   headers.set("X-Request-Id", `data-${crypto.randomUUID()}`);
   headers.set("X-Trace-Id", crypto.randomUUID().replace(/-/g, ""));
+  if (!["GET", "HEAD", "OPTIONS"].includes(method) && !headers.has("Idempotency-Key")) {
+    headers.set("Idempotency-Key", `data-${crypto.randomUUID()}`);
+  }
   if (
     init.body &&
     !(init.body instanceof FormData) &&
@@ -169,6 +241,7 @@ async function request<T>(
     });
     const body = await parseJson<T | ApiErrorBody>(response);
     if (!response.ok) {
+      if (response.status === 401) notifyAuthExpired();
       const error = (body as ApiErrorBody).error;
       throw new ApiError(
         response.status,
@@ -197,6 +270,48 @@ export async function api<T>(
 ): Promise<T> {
   return request<T>(path, init);
 }
+
+export async function login(
+  username: string,
+  password: string,
+  connectionOverride?: Pick<ConnectionSettings, "apiBase">,
+): Promise<LoginResponse> {
+  const connection = { ...loadConnection(), ...connectionOverride };
+  let response: Response;
+  try {
+    response = await fetch(`${buildBaseUrl(connection)}/api/v1/auth/login`, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ username, password }),
+      cache: "no-store",
+    });
+  } catch {
+    throw new ApiError(0, "NETWORK_ERROR", localizedHttpError(0, "NETWORK_ERROR"));
+  }
+  const body = await parseJson<LoginResponse | ApiErrorBody>(response);
+  if (!response.ok) {
+    const error = (body as ApiErrorBody).error;
+    throw new ApiError(
+      response.status,
+      error?.code ?? "HTTP_ERROR",
+      localizedHttpError(response.status, error?.code ?? "HTTP_ERROR", error?.message, error?.details),
+      (body as ApiErrorBody).request_id,
+    );
+  }
+  return body as LoginResponse;
+}
+
+export function userFacingError(
+  caught: unknown,
+  fallback = "操作失败，请稍后重试",
+): string {
+  return caught instanceof ApiError ? caught.message : fallback;
+}
+
+export { AUTH_EXPIRED_EVENT };
 
 export async function fetchReadyz(connection?: ConnectionSettings): Promise<ReadyzResponse> {
   return request<ReadyzResponse>("/readyz", {}, 8000, connection);

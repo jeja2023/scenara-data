@@ -9,9 +9,23 @@ import {
   Settings2,
 } from "@lucide/vue";
 
+import { isSignedIn } from "./auth";
+
 const APP_TITLE = "景枢数据";
 
 const routes = [
+  {
+    path: "/login",
+    name: "login",
+    component: () => import("./views/LoginView.vue"),
+    meta: {
+      title: "登录",
+      hideFromNavigation: true,
+      public: true,
+      layout: "auth",
+      platform: "data",
+    },
+  },
   {
     path: "/",
     name: "overview",
@@ -90,6 +104,14 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+});
+
+router.beforeEach((to) => {
+  if (!to.meta.public && !isSignedIn()) {
+    return { name: "login", query: { redirect: to.fullPath } };
+  }
+  if (to.name === "login" && isSignedIn()) return { name: "overview" };
+  return true;
 });
 
 router.afterEach((to) => {

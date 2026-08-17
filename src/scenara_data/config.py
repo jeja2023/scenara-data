@@ -8,6 +8,24 @@ DEFAULT_REDIS_URL = "redis://127.0.0.1:6379/1"
 DEFAULT_OBJECT_STORAGE_ENDPOINT = "http://127.0.0.1:9000"
 DEFAULT_DATASET_BUCKET = "scenara-datasets"
 DEFAULT_DEV_SERVICE_TOKEN = "scenara-data-dev-token"
+DEFAULT_CONSOLE_USERNAME = "admin"
+DEFAULT_CONSOLE_SESSION_TTL_SECONDS = 86400
+DEFAULT_CONSOLE_SCOPES = (
+    "data.dataset.create",
+    "data.dataset.read",
+    "data.dataset.update",
+    "data.dataset.publish",
+    "data.dataset.archive",
+    "data.sample.create",
+    "data.sample.read",
+    "data.annotation.create",
+    "data.annotation.review",
+    "data.quality.run",
+    "data.lineage.read",
+    "data.import.execute",
+    "data.export.execute",
+    "data.hard_sample.import",
+)
 
 # 规范 63 定义的成熟度阶梯；本仓库未完成目标环境资格验证，最高只能声明 implemented。
 MATURITY_LEVELS = ("planned", "seed", "implemented", "qualified", "production_ready")
@@ -41,6 +59,14 @@ class Settings:
     core_event_token: str | None = None
     core_event_timeout_seconds: float = 5.0
     allowed_source_systems: tuple[str, ...] = field(default=("scenara", "scenara-core"))
+    console_username: str = DEFAULT_CONSOLE_USERNAME
+    console_password: str | None = None
+    console_session_secret: str | None = None
+    console_session_ttl_seconds: int = DEFAULT_CONSOLE_SESSION_TTL_SECONDS
+    console_tenant_id: str = "default"
+    console_project_id: str = "default"
+    console_scopes: tuple[str, ...] = DEFAULT_CONSOLE_SCOPES
+    console_entitlements: tuple[str, ...] = field(default=("scenara.data",))
     cors_allow_origins: tuple[str, ...] = field(
         default=(
             "http://127.0.0.1:5173",
@@ -54,6 +80,12 @@ class Settings:
     def is_production_candidate(self) -> bool:
         """postgres 运行模式代表真实事实存储，内存模式只用于开发和单元测试。"""
         return self.runtime_mode == "postgres"
+
+    def __post_init__(self) -> None:
+        if self.console_password is None:
+            object.__setattr__(self, "console_password", self.trusted_service_token)
+        if self.console_session_secret is None:
+            object.__setattr__(self, "console_session_secret", self.trusted_service_token)
 
 
 def _optional(name: str) -> str | None:
@@ -74,6 +106,18 @@ def _positive_int(name: str, default: int) -> int:
     if value <= 0:
         raise RuntimeError(f"{name} 必须是正整数")
     return value
+
+
+def _csv(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
+    return tuple(
+        sorted(
+            {
+                item.strip()
+                for item in os.getenv(name, ",".join(default)).split(",")
+                if item.strip()
+            }
+        )
+    )
 
 
 def load_settings() -> Settings:
@@ -110,6 +154,13 @@ def load_settings() -> Settings:
     )
     if not source_systems:
         raise RuntimeError("SCENARA_DATA_ALLOWED_SOURCE_SYSTEMS 不能为空")
+
+    console_username = os.getenv("SCENARA_DATA_CONSOLE_USERNAME", DEFAULT_CONSOLE_USERNAME).strip()
+    if not console_username:
+        raise RuntimeError("SCENARA_DATA_CONSOLE_USERNAME 不能为空")
+    console_scopes = _csv("SCENARA_DATA_CONSOLE_SCOPES", DEFAULT_CONSOLE_SCOPES)
+    if not console_scopes:
+        raise RuntimeError("SCENARA_DATA_CONSOLE_SCOPES 不能为空")
 
     event_endpoint = _optional("SCENARA_DATA_CORE_EVENT_ENDPOINT")
     event_token = _optional("SCENARA_DATA_CORE_EVENT_TOKEN")
@@ -154,5 +205,15 @@ def load_settings() -> Settings:
         core_event_token=event_token,
         core_event_timeout_seconds=float(_positive_int("SCENARA_DATA_CORE_EVENT_TIMEOUT_SECONDS", 5)),
         allowed_source_systems=source_systems,
+        console_username=console_username,
+        console_password=_optional("SCENARA_DATA_CONSOLE_PASSWORD") or token,
+        console_session_secret=_optional("SCENARA_DATA_CONSOLE_SESSION_SECRET") or token,
+        console_session_ttl_seconds=_positive_int(
+            "SCENARA_DATA_CONSOLE_SESSION_TTL_SECONDS", DEFAULT_CONSOLE_SESSION_TTL_SECONDS
+        ),
+        console_tenant_id=os.getenv("SCENARA_DATA_CONSOLE_TENANT_ID", "default").strip() or "default",
+        console_project_id=os.getenv("SCENARA_DATA_CONSOLE_PROJECT_ID", "default").strip() or "default",
+        console_scopes=console_scopes,
+        console_entitlements=_csv("SCENARA_DATA_CONSOLE_ENTITLEMENTS", ("scenara.data",)),
         cors_allow_origins=cors_origins,
     )

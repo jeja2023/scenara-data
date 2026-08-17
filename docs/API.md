@@ -1,12 +1,15 @@
 # API 文档
 
-当前 `implemented` 版本为 `0.1.4`，提供内部业务 API 和运维探针。公共 `/api/v1/` 仍由 Core 网关代理，数据平台只暴露 `/internal/v1/`。
+当前 `implemented` 版本为 `0.1.4`，提供内部业务 API、运维探针和独立工作台本地登录入口。公共业务 `/api/v1/` 仍由 Core 网关代理，数据平台业务接口只暴露 `/internal/v1/`。
 
 | 方法 | 路径 | 认证 | 用途 |
 | --- | --- | --- | --- |
+| POST | `/api/v1/auth/login` | 无 | 独立数据工作台本地登录，会签发短期工作台会话令牌 |
 | GET | `/livez`、`/health` | 无 | 存活探针 |
 | GET | `/readyz` | 无 | PostgreSQL/对象存储真实就绪检查 |
 | GET | `/metrics` | 无 | Prometheus 指标 |
+
+`/api/v1/auth/login` 仅服务独立前端直连场景，不替代 Core IAM。用户名默认来自 `SCENARA_DATA_CONSOLE_USERNAME`，密码默认复用 `SCENARA_DATA_TRUSTED_SERVICE_TOKEN`，也可用 `SCENARA_DATA_CONSOLE_PASSWORD` 单独覆盖。登录令牌访问 `/internal/v1/` 时由后端恢复租户、项目、主体、权限范围和产品授权；服务间调用仍可继续使用原有 Bearer 令牌和透传请求头。
 
 所有 `/internal/v1/` 业务写接口都要求 Core 平台透传的身份上下文和 `Idempotency-Key`。核心路径包括：
 

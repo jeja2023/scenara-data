@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Scenara 景枢品牌标志</title>
+  <defs>
+    <linearGradient id="ribbon-a" x1="13" y1="51" x2="40" y2="3" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6B22F4"/>
+      <stop offset=".52" stop-color="#2845F5"/>
+      <stop offset="1" stop-color="#12C8F4"/>
+    </linearGradient>
+    <linearGradient id="ribbon-b" x1="49" y1="25" x2="29" y2="62" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#18BDF2"/>
+      <stop offset=".5" stop-color="#2750F4"/>
+      <stop offset="1" stop-color="#5824F3"/>
+    </linearGradient>
+    <linearGradient id="core" x1="27" y1="38" x2="37" y2="27" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6B22F4"/>
+      <stop offset="1" stop-color="#18BDF2"/>
+    </linearGradient>
+    <mask id="core-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+      <rect width="64" height="64" fill="#fff"/>
+      <path d="M32 20.5C34.6 26.7 37.3 29.4 43.5 32c-6.2 2.6-8.9 5.3-11.5 11.5-2.6-6.2-5.3-8.9-11.5-11.5 6.2-2.6 8.9-5.3 11.5-11.5Z" fill="#000"/>
+    </mask>
+  </defs>
+  <g mask="url(#core-cutout)">
+    <path fill="url(#ribbon-a)" transform="translate(0 -3)" d="M40 2.5c.4 9.4-3.4 15.9-11.6 21l-5.7 3.6c-4.6 2.8-5.9 6.4-3.9 10 1.6 2.9 5 5.7 9.6 8.2L23 52.7c-7.8-4.5-12.7-9.8-13.5-16.5-.9-8.2 3.8-15.4 12.8-21.3C29.4 10.2 35.7 6.3 40 2.5Z"/>
+    <path fill="url(#ribbon-b)" transform="translate(0 3) rotate(180 32 32)" d="M40 2.5c.4 9.4-3.4 15.9-11.6 21l-5.7 3.6c-4.6 2.8-5.9 6.4-3.9 10 1.6 2.9 5 5.7 9.6 8.2L23 52.7c-7.8-4.5-12.7-9.8-13.5-16.5-.9-8.2 3.8-15.4 12.8-21.3C29.4 10.2 35.7 6.3 40 2.5Z"/>
+  </g>
+  <path fill="url(#core)" d="M32 25c1.6 3.8 3.2 5.4 7 7-3.8 1.6-5.4 3.2-7 7-1.6-3.8-3.2-5.4-7-7 3.8-1.6 5.4-3.2 7-7Z"/>
+</svg>

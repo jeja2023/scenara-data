@@ -192,6 +192,51 @@ async def test_authentication_authorization_and_tenant_isolation(client: ApiClie
 
 
 @pytest.mark.asyncio
+async def test_console_login_issues_session_for_internal_apis(client: ApiClient) -> None:
+    rejected = await client.post(
+        "/api/v1/auth/login",
+        json={"username": "admin", "password": "wrong-password"},
+    )
+    assert rejected.status_code == 401
+    assert rejected.json()["error"]["code"] == "UNAUTHENTICATED"
+
+    login = await client.post(
+        "/api/v1/auth/login",
+        json={"username": "admin", "password": DEFAULT_DEV_SERVICE_TOKEN},
+    )
+    assert login.status_code == 200, login.text
+    payload = login.json()
+    assert payload["username"] == "admin"
+    assert payload["session"]["tenant_id"] == "default"
+    assert payload["session"]["project_id"] == "default"
+    assert "data.dataset.create" in payload["session"]["permission_scopes"]
+
+    session_headers = {
+        "Authorization": f"Bearer {payload['token']}",
+        "X-Request-Id": "req-console-session",
+        "X-Trace-Id": "0123456789abcdef0123456789abcdef",
+        "Idempotency-Key": "console-session-create",
+    }
+    created = await client.post(
+        "/internal/v1/datasets",
+        headers=session_headers,
+        json={"dataset_id": "dst_console", "name": "console session"},
+    )
+    assert created.status_code == 201, created.text
+
+    listed = await client.get(
+        "/internal/v1/datasets",
+        headers={
+            "Authorization": f"Bearer {payload['token']}",
+            "X-Request-Id": "req-console-session-list",
+            "X-Trace-Id": "0123456789abcdef0123456789abcdef",
+        },
+    )
+    assert listed.status_code == 200
+    assert listed.json()["items"][0]["created_by"] == "admin"
+
+
+@pytest.mark.asyncio
 async def test_idempotency_replays_the_original_response_and_rejects_changed_payload(
     client: ApiClient,
 ) -> None:

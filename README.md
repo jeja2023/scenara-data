@@ -52,4 +52,6 @@ npm run dev
 
 如果后端端口不是 `8082`，把 `VITE_DATA_API_BASE` 改成实际地址即可。前端会通过统一设计系统、主题令牌和门户规范保持与 Core 平台和模型平台一致的视觉语言。
 
+工作台访问业务页面前会进入登录页。本地默认用户名为 `admin`；密码默认复用后端 `SCENARA_DATA_TRUSTED_SERVICE_TOKEN`，内存开发模式未配置时为 `scenara-data-dev-token`。如需为工作台单独设置密码，可配置 `SCENARA_DATA_CONSOLE_PASSWORD`，并可通过 `SCENARA_DATA_CONSOLE_TENANT_ID`、`SCENARA_DATA_CONSOLE_PROJECT_ID` 固定登录后的租户和项目。
+
 工作台列表请求遵循后端分页契约，默认使用 `limit=100`。总览和运维页分别处理就绪探针、健康探针与业务列表失败，单个业务请求失败不会把可访问的后端显示为“离线”。移动端验收重点包括顶部连接状态和设置入口、导航抽屉、密集表单换行、表格横向滚动以及错误/空状态展示。

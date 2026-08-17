@@ -1,18 +1,24 @@
 <script setup lang="ts">
 import {
-  Activity,
-  Database,
-  FlaskConical,
-  Layers3,
+  LogOut,
   Menu,
   RefreshCw,
   Settings2,
   X,
 } from "@lucide/vue";
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
-import { RouterLink, RouterView, useRoute } from "vue-router";
+import { RouterLink, RouterView, useRoute, useRouter } from "vue-router";
 
-import { fetchHealth, fetchReadyz, loadConnection, saveConnection, type ConnectionSettings } from "./api";
+import { isSignedIn, signOut } from "./auth";
+import {
+  AUTH_EXPIRED_EVENT,
+  connectionTokenIsPersistent,
+  fetchHealth,
+  fetchReadyz,
+  loadConnection,
+  saveConnection,
+  type ConnectionSettings,
+} from "./api";
 import { REFRESH_EVENT } from "./composables/useRefresh";
 import { labelPrincipalType, labelReadinessState } from "./labels";
 import { routes } from "./router";
@@ -30,6 +36,8 @@ type NavRoute = {
 };
 
 const route = useRoute();
+const router = useRouter();
+const isAuthRoute = computed(() => route.meta.layout === "auth");
 const navOpen = ref(false);
 const settingsOpen = ref(false);
 const readyState = ref<"checking" | "ready" | "offline" | "not_ready">("checking");
@@ -66,7 +74,7 @@ function openSettings(): void {
 
 function applySettings(): void {
   const next = { ...draft, apiBase: draft.apiBase.replace(/\/$/, "") };
-  saveConnection(next);
+  saveConnection(next, { persistAuth: connectionTokenIsPersistent() });
   connection.value = next;
   settingsOpen.value = false;
   window.dispatchEvent(new CustomEvent(REFRESH_EVENT));
@@ -112,14 +120,47 @@ function closeNav(): void {
   navOpen.value = false;
 }
 
+function logout(): void {
+  signOut();
+  navOpen.value = false;
+  settingsOpen.value = false;
+  readyState.value = "checking";
+  void router.replace({ name: "login" });
+}
+
+function handleAuthExpired(): void {
+  signOut();
+  if (route.name !== "login") void router.replace({ name: "login" });
+}
+
+function checkAuthStatus(): void {
+  if (!isAuthRoute.value && !isSignedIn()) {
+    handleAuthExpired();
+  }
+}
+
 onMounted(() => {
-  void checkReadyz();
+  window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+  window.addEventListener("focus", checkAuthStatus);
+  if (!isAuthRoute.value) void checkReadyz();
   refreshTimer = window.setInterval(checkReadyz, 15000);
 });
 
 onBeforeUnmount(() => {
+  window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+  window.removeEventListener("focus", checkAuthStatus);
   if (refreshTimer !== null) window.clearInterval(refreshTimer);
 });
+
+watch(
+  isAuthRoute,
+  (authRoute) => {
+    if (!authRoute) {
+      connection.value = loadConnection();
+      void checkReadyz();
+    }
+  },
+);
 
 watch(
   () => route.fullPath,
@@ -130,7 +171,9 @@ watch(
 </script>
 
 <template>
-  <div class="shell" :data-platform="platform">
+  <RouterView v-if="isAuthRoute" />
+
+  <div v-else class="shell" :data-platform="platform">
     <a class="skip-link" href="#main-content">跳到主内容</a>
 
     <header class="topbar">
@@ -162,6 +205,9 @@ watch(
         </button>
         <button class="icon-button" title="连接设置" @click="openSettings">
           <Settings2 :size="18" />
+        </button>
+        <button class="icon-button" title="退出登录" @click="logout">
+          <LogOut :size="18" />
         </button>
       </div>
     </header>

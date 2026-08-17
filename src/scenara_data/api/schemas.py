@@ -54,6 +54,34 @@ class Page[T](ApiModel):
     next_cursor: str | None = None
 
 
+# ------------------------------------------------------------------------ 认证
+
+
+class LoginRequest(ApiModel):
+    username: str = Field(min_length=1, max_length=128)
+    password: str = Field(min_length=1, max_length=512)
+
+
+class LoginSessionInfo(ApiModel):
+    session_id: str
+    tenant_id: str
+    project_id: str
+    user_id: str
+    principal_type: Literal["user", "service_account"]
+    permission_scopes: tuple[str, ...]
+    product_entitlements: tuple[str, ...]
+    issued_at: int
+    expires_at: int
+
+
+class LoginResponse(ApiModel):
+    token: str
+    username: str
+    role: str = "data-console-user"
+    expires_at: int
+    session: LoginSessionInfo
+
+
 # ---------------------------------------------------------------------- 数据集
 
 
