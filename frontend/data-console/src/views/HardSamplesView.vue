@@ -190,7 +190,7 @@ async function submit(): Promise<void> {
       ],
       sha256: "",
       created_by: manifestDraft.created_by.trim(),
-      created_at: Math.floor(Date.now() / 1000),
+      created_at: new Date().toISOString(),
     } as HardSampleContractManifest;
     const hash = await sha256Hex(
       canonicalize({

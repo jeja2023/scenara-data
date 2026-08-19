@@ -1,5 +1,11 @@
 # 更新日志
 
+## [Unreleased]
+
+- 同步 `@scenara/repository-contracts` `1.0.0` 的当前契约摘要，并将 `DatasetVersionReference` 与 `HardSampleManifest` 的跨仓 `created_at` 统一为以 `Z` 结尾的 UTC RFC3339 字符串。
+- Data API 入口继续对 `dataset-version-input` 和 `hard-sample-handoff` 执行严格时间校验；内部领域模型和 PostgreSQL 使用的原生 `datetime/timestamptz` 保持不变。
+- 修正独立数据工作台的契约类型、难例清单提交时间和版本引用展示，移除 Unix 秒及 `* 1000` 转换。
+
 ## [0.1.4] - 2026-08-17
 
 - 增加独立数据工作台登录页和本地用户名密码会话，登录后由会话令牌访问内部业务 API，避免直连工作台因缺少认证上下文返回 `401`。

@@ -7,10 +7,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from scenara_data import contracts
 from scenara_data.domain.models import (
@@ -46,6 +47,20 @@ GrantPermission = Literal["manifest.read", "objects.read"]
 
 class ApiModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+RFC3339_UTC = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?Z$")
+
+
+def validate_utc_rfc3339(value: str) -> str:
+    """Validate published cross-repository timestamps without retaining numeric fallbacks."""
+    if not RFC3339_UTC.fullmatch(value):
+        raise ValueError("跨仓时间字段必须是 UTC RFC3339 字符串并以 Z 结尾")
+    try:
+        datetime.fromisoformat(value[:-1] + "+00:00")
+    except ValueError as exc:
+        raise ValueError("跨仓时间字段不是有效的 UTC RFC3339 时间") from exc
+    return value
 
 
 class Page[T](ApiModel):
@@ -152,7 +167,12 @@ class DatasetVersionReference(ApiModel):
     lineage_refs: tuple[str, ...] = Field(min_length=1, max_length=100)
     authorization_id: str = Field(min_length=1, max_length=256)
     authorized_consumer_repository_ids: tuple[str, ...] = Field(min_length=1, max_length=32)
-    created_at: float
+    created_at: str = Field(pattern=RFC3339_UTC.pattern)
+
+    @field_validator("created_at")
+    @classmethod
+    def created_at_is_utc_rfc3339(cls, value: str) -> str:
+        return validate_utc_rfc3339(value)
 
     @model_validator(mode="after")
     def immutable_references_match_digest(self) -> DatasetVersionReference:
@@ -306,7 +326,12 @@ class HardSampleContractManifest(ApiModel):
     items: tuple[HardSampleContractItem, ...] = Field(min_length=1, max_length=10_000)
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     created_by: str
-    created_at: float
+    created_at: str = Field(pattern=RFC3339_UTC.pattern)
+
+    @field_validator("created_at")
+    @classmethod
+    def created_at_is_utc_rfc3339(cls, value: str) -> str:
+        return validate_utc_rfc3339(value)
 
     def calculated_sha256(self) -> str:
         payload = {

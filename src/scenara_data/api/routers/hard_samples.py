@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 
 from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 
 from scenara_data.api.deps import ContainerDep, ContextDep, idempotent
 from scenara_data.api.routers.datasets import ERROR_RESPONSES
-from scenara_data.api.schemas import HardSampleIntakeRequest, HardSampleIntakeResponse
+from scenara_data.api.schemas import (
+    HardSampleIntakeRequest,
+    HardSampleIntakeResponse,
+    validate_utc_rfc3339,
+)
 from scenara_data.application.errors import InputValidationError
 from scenara_data.application.hard_samples import IntakeResult
 from scenara_data.domain.models import HardSampleHandoff, HardSampleImport, HardSampleManifest
@@ -123,7 +127,7 @@ def _domain_manifest(body: HardSampleIntakeRequest, context: RequestContext) -> 
     return HardSampleManifest(
         manifest_id=contract.manifest_id,
         source_system="scenara",
-        generated_at=datetime.fromtimestamp(contract.created_at, UTC),
+        generated_at=datetime.fromisoformat(validate_utc_rfc3339(contract.created_at)[:-1] + "+00:00"),
         items=tuple(handoffs),
         dataset_id=contract.dataset_id,
         contract_sha256=contract.sha256,

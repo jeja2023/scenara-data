@@ -125,7 +125,7 @@ export interface DatasetVersionReference {
   lineage_refs: string[];
   authorization_id: string;
   authorized_consumer_repository_ids: string[];
-  created_at: number;
+  created_at: string;
 }
 
 export interface HardSampleContractItem {
@@ -159,7 +159,7 @@ export interface HardSampleContractManifest {
   items: HardSampleContractItem[];
   sha256: string;
   created_by: string;
-  created_at: Timestamp;
+  created_at: string;
 }
 
 export interface HardSampleSource {

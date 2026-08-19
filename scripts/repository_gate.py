@@ -49,7 +49,7 @@ def main() -> int:
     lock = yaml.safe_load((ROOT / "configs/contracts/repository-contracts.yml").read_text(encoding="utf-8"))
     if lock.get("version") != "1.0.0":
         problems.append("仓库契约版本必须固定为 1.0.0")
-    if lock.get("manifest_sha256") != "4b070ce7e8d11f6c21641559c844b736482fa38e726b0778eb2d9c2834feecd6":
+    if lock.get("manifest_sha256") != "c43f58eb9ba71dc571b0f76c960c5d7eb9276bbd89c452186371c08dec2fdc67":
         problems.append("仓库契约清单摘要与已发布版本不一致")
 
     contracts_root = ROOT / "scenara-contracts"

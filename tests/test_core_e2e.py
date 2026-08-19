@@ -5,6 +5,7 @@ import json
 import os
 import sys
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -195,7 +196,7 @@ async def test_core_gateway_against_real_data_asgi() -> None:
             "split": "train",
             "items": [item.model_dump(mode="json")],
             "created_by": "user-a",
-            "created_at": 1.0,
+            "created_at": "2026-08-18T00:00:00Z",
         }
         manifest_values["sha256"] = _hard_sample_digest(manifest_values)
         intake = await gateway.submit_hard_sample_manifest(
@@ -246,7 +247,7 @@ async def test_core_export_is_imported_by_data(tmp_path: Path) -> None:
             "size_bytes": len(content),
             "content_type": "image/jpeg",
             "filename": "ast_migration.jpg",
-            "created_at": 1.0,
+            "created_at": datetime(2026, 8, 18, tzinfo=UTC).timestamp(),
             "deleted_at": None,
             "original_deleted_at": None,
         },

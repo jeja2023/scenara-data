@@ -248,7 +248,7 @@ useRefresh(refresh);
           <div><dt>摘要</dt><dd class="mono">{{ shortHash(reference.manifest_sha256) }}</dd></div>
           <div><dt>授权</dt><dd>{{ reference.authorization_id }}</dd></div>
           <div><dt>模型仓库</dt><dd>{{ reference.authorized_consumer_repository_ids.join(', ') }}</dd></div>
-          <div><dt>生成时间</dt><dd>{{ formatTimestamp(reference.created_at * 1000) }}</dd></div>
+          <div><dt>生成时间</dt><dd>{{ formatTimestamp(reference.created_at) }}</dd></div>
         </dl>
         <p class="muted tiny mono">{{ reference.manifest_uri }}</p>
       </div>

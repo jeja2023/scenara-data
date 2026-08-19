@@ -1,6 +1,6 @@
 package: "@scenara/repository-contracts"
 version: "1.0.0"
-manifest_sha256: "4b070ce7e8d11f6c21641559c844b736482fa38e726b0778eb2d9c2834feecd6"
+manifest_sha256: "c43f58eb9ba71dc571b0f76c960c5d7eb9276bbd89c452186371c08dec2fdc67"
 source_repository: "scenara-contracts"
 produces:
   - dataset-version-input

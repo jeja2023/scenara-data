@@ -39,6 +39,7 @@ from scenara_data.domain.services import (
     build_manifest_payload,
     canonical_json,
     manifest_object_key,
+    rfc3339,
     sample_object_key,
     split_counts,
 )
@@ -543,7 +544,7 @@ class DatasetService(ApplicationService):
             "lineage_refs": [_immutable_uri(lineage_ref)],
             "authorization_id": grant.grant_id,
             "authorized_consumer_repository_ids": ["scenara-model"],
-            "created_at": value.published_at.timestamp(),
+            "created_at": rfc3339(value.published_at),
         }
 
     def read_manifest(self, dataset_version_id: str, context: RequestContext) -> dict[str, Any]:
