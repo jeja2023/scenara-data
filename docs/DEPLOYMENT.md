@@ -12,7 +12,7 @@ docker compose -f deploy/compose.yml up --build
 
 本机一键启动可直接执行 [start.py](/D:/project/scenara-data/start.py)。默认 `all` 模式会先探测 PostgreSQL、Redis 和 MinIO 是否可达，再启动数据 API 与前端工作台；也可以通过 `--mode backend` 或 `--mode frontend` 单独启动。
 
-数据平台前端采用独立 Vue 3 + Vite 工作台，当前版本为 `0.1.4`，目录为 `frontend/data-console`。工作台已完成全面中文化，并提供总览、数据集、版本治理、难例导入和运维探针页面。开发时可通过 `VITE_DATA_API_BASE` 指定后端地址，例如 `http://127.0.0.1:8082`。
+数据平台前端采用独立 Vue 3 + Vite 工作台，当前版本为 `0.1.5`，目录为 `frontend/data-console`。工作台已完成全面中文化，并提供总览、数据集、版本治理、难例导入和运维探针页面。开发时可通过 `VITE_DATA_API_BASE` 指定后端地址，例如 `http://127.0.0.1:8082`。
 
 工作台登录入口为 `/login`，本地账号由后端环境变量控制：`SCENARA_DATA_CONSOLE_USERNAME` 默认 `admin`，`SCENARA_DATA_CONSOLE_PASSWORD` 未设置时复用 `SCENARA_DATA_TRUSTED_SERVICE_TOKEN`，`SCENARA_DATA_CONSOLE_TENANT_ID` 和 `SCENARA_DATA_CONSOLE_PROJECT_ID` 控制登录会话的默认租户与项目。生产接入仍应由 Core 统一门户和网关提供正式身份事实。
 

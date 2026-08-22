@@ -2,9 +2,17 @@
 
 ## [Unreleased]
 
-- 同步 `@scenara/repository-contracts` `1.0.0` 的当前契约摘要，并将 `DatasetVersionReference` 与 `HardSampleManifest` 的跨仓 `created_at` 统一为以 `Z` 结尾的 UTC RFC3339 字符串。
+- 同步 `@scenara/repository-contracts` `1.0.1` 的当前契约摘要，并将 `DatasetVersionReference` 与 `HardSampleManifest` 的跨仓 `created_at` 统一为以 `Z` 结尾的 UTC RFC3339 字符串。
 - Data API 入口继续对 `dataset-version-input` 和 `hard-sample-handoff` 执行严格时间校验；内部领域模型和 PostgreSQL 使用的原生 `datetime/timestamptz` 保持不变。
 - 修正独立数据工作台的契约类型、难例清单提交时间和版本引用展示，移除 Unix 秒及 `* 1000` 转换。
+
+## [0.1.5] - 2026-08-22
+
+- 完成四仓库《景枢平台总体开发规范》符合性复核，并在 `docs/REMAINING_TASK_PLAN.md` 记录 Data 仓库剩余任务、生产资格和证据门禁。
+- 补齐迁移导入、数据集版本、难例交接、Outbox、探针和独立工作台的当前实现说明，明确真实 PostgreSQL/对象存储/Redis 资格仍需外部环境证据。
+- 同步 `scenara-data`、独立 Vue 工作台和 lockfile 到 `0.1.5`，并同步当前版本、部署、开发、API、测试和 README 文档。
+- 对齐四仓库契约消费说明，保留历史 `v1.0.0` 契约目录不可变，并切换到兼容性修订版本 `v1.0.1`。
+- 本版本验证基线：Data pytest `19 passed, 1 skipped`；跨仓库真实基础设施、容量、恢复和 IAM/Console 外部门禁仍保持 fail-closed。
 
 ## [0.1.4] - 2026-08-17
 

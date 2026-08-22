@@ -240,7 +240,7 @@ watch(
       </nav>
 
       <div class="sidebar-footer">
-        <span>v0.1.4</span><i></i><span>{{ readyMessage }}</span>
+        <span>v0.1.5</span><i></i><span>{{ readyMessage }}</span>
       </div>
     </aside>
 

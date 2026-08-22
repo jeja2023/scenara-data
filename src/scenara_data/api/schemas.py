@@ -157,7 +157,7 @@ class PublicationResponse(ApiModel):
 
 
 class DatasetVersionReference(ApiModel):
-    """`@scenara/repository-contracts` 1.0.0 的 `dataset-version-input` 契约。"""
+    """`@scenara/repository-contracts` 1.0.1 的 `dataset-version-input` 契约。"""
 
     schema_version: Literal["1.0"] = contracts.DATASET_VERSION_INPUT_SCHEMA_VERSION  # type: ignore[assignment]
     dataset_id: str
@@ -313,7 +313,7 @@ class HardSampleContractItem(ApiModel):
 
 
 class HardSampleContractManifest(ApiModel):
-    """已发布的 `hard-sample-handoff` 1.0.0 载荷，不包含本地扩展字段。"""
+    """已发布的 `hard-sample-handoff` 1.0.1 载荷，不包含本地扩展字段。"""
 
     schema_version: Literal["1.0"] = contracts.HARD_SAMPLE_MANIFEST_SCHEMA_VERSION  # type: ignore[assignment]
     manifest_id: str

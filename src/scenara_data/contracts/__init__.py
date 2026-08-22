@@ -10,9 +10,9 @@ from __future__ import annotations
 from types import MappingProxyType
 
 CONTRACT_PACKAGE = "@scenara/repository-contracts"
-CONTRACT_VERSION = "1.0.0"
+CONTRACT_VERSION = "1.0.1"
 CONTRACT_SOURCE_REPOSITORY = "scenara-contracts"
-CONTRACT_MANIFEST_SHA256 = "c43f58eb9ba71dc571b0f76c960c5d7eb9276bbd89c452186371c08dec2fdc67"
+CONTRACT_MANIFEST_SHA256 = "a1da1401b80827e1fb354e899e9b2358d8cb1109eaeb5a86ea4b07c2c9b3feb8"
 
 EVENT_ENVELOPE_VERSION = "1.0"
 ERROR_ENVELOPE_VERSION = "1.0"
