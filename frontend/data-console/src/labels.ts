@@ -88,6 +88,11 @@ const hardSampleKindLabels: Record<HardSampleKind, string> = {
   wrong_attribute: "属性错误",
   wrong_identity: "身份错误",
   ocr_correction: "OCR 校正",
+  action_correction: "动作校正",
+  temporal_correction: "时序区间校正",
+  style_correction: "服装风格校正",
+  character_correction: "角色校正",
+  accessory_correction: "配饰校正",
 };
 
 export function labelDatasetStatus(value: DatasetStatus): string {

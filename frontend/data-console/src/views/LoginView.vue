@@ -150,7 +150,7 @@ onMounted(() => passwordInput.value?.focus());
         </button>
       </form>
 
-      <footer class="login-form-footer">景枢数据 · v0.1.5</footer>
+      <footer class="login-form-footer">景枢数据 · v0.1.6</footer>
     </section>
   </main>
 </template>

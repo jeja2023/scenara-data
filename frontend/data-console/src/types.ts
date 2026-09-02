@@ -83,7 +83,7 @@ export interface SampleRecord {
   person_id?: string | null;
   camera_id?: string | null;
   bbox?: [number, number, number, number] | null;
-  dataset_split?: "train" | "query" | "gallery" | null;
+  dataset_split?: "train" | "validation" | "test" | "query" | "gallery" | null;
   captured_at?: Timestamp | null;
 }
 
@@ -135,7 +135,12 @@ export interface HardSampleContractItem {
     | "false_negative"
     | "wrong_attribute"
     | "wrong_identity"
-    | "ocr_correction";
+    | "ocr_correction"
+    | "action_correction"
+    | "temporal_correction"
+    | "style_correction"
+    | "character_correction"
+    | "accessory_correction";
   media_ref: string;
   result_ref: string;
   model_id: string;
@@ -145,6 +150,8 @@ export interface HardSampleContractItem {
   correction: Record<string, unknown>;
   authorized_for_training: boolean;
   deidentified: boolean;
+  domain?: string | null;
+  annotation_schema_id?: string | null;
 }
 
 export interface HardSampleContractManifest {
@@ -172,7 +179,7 @@ export interface HardSampleSource {
   person_id?: string | null;
   camera_id?: string | null;
   bbox?: [number, number, number, number] | null;
-  dataset_split?: "train" | "query" | "gallery" | null;
+  dataset_split?: "train" | "validation" | "test" | "query" | "gallery" | null;
   captured_at?: string | null;
 }
 

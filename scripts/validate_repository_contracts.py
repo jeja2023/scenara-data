@@ -18,6 +18,7 @@ from scenara_data.contracts import (  # noqa: E402
     CONTRACT_MANIFEST_SHA256,
     CONTRACT_VERSION,
 )
+from scenara_data.domain.annotation_schemas import published_annotation_schemas  # noqa: E402
 
 
 def _json(path: Path) -> dict[str, Any]:
@@ -60,7 +61,7 @@ def validate(contracts_root: Path) -> None:
 
     published = _json(release_manifest)
     contracts = {str(item["contract_id"]): item for item in published.get("contracts", [])}
-    required = {"dataset-version-input", "hard-sample-handoff"}
+    required = {"dataset-version-input", "hard-sample-handoff", "domain-annotation-schema"}
     if not required.issubset(contracts):
         missing = ", ".join(sorted(required - set(contracts)))
         raise SystemExit(f"已发布仓库契约缺少必需条目：{missing}")
@@ -80,6 +81,7 @@ def validate(contracts_root: Path) -> None:
             DatasetVersionReference.model_validate(example)
         elif contract_id == "hard-sample-handoff":
             HardSampleContractManifest.model_validate(example)
+    published_annotation_schemas()
 
 
 def main(argv: list[str] | None = None) -> int:

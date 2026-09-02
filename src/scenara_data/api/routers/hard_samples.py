@@ -16,6 +16,7 @@ from scenara_data.api.schemas import (
 )
 from scenara_data.application.errors import InputValidationError
 from scenara_data.application.hard_samples import IntakeResult
+from scenara_data.domain.annotation_schemas import AnnotationSchemaError, annotation_schema_definition
 from scenara_data.domain.models import HardSampleHandoff, HardSampleImport, HardSampleManifest
 from scenara_data.ports.interfaces import RequestContext
 
@@ -33,12 +34,19 @@ def ingest_hard_sample_manifest(
     body: HardSampleIntakeRequest, container: ContainerDep, context: ContextDep
 ) -> JSONResponse:
     manifest = _domain_manifest(body, context)
+    item_schemas = {item.annotation_schema_id for item in body.manifest.items if item.annotation_schema_id}
+    if len(item_schemas) > 1:
+        raise InputValidationError("一个难例清单不能混用多个领域标注模式")
+    inferred_schema = next(iter(item_schemas), None)
+    if body.annotation_schema_id and inferred_schema and body.annotation_schema_id != inferred_schema:
+        raise InputValidationError("请求标注模式与难例条目不一致")
+    annotation_schema_id = body.annotation_schema_id or inferred_schema
 
     def ingest() -> dict[str, object]:
         result = container.hard_samples.ingest_manifest(
             manifest,
             context,
-            annotation_schema_id=body.annotation_schema_id,
+            annotation_schema_id=annotation_schema_id,
             build_version=body.build_version,
             publish=body.publish,
         )
@@ -90,10 +98,16 @@ def _domain_manifest(body: HardSampleIntakeRequest, context: RequestContext) -> 
             details={"manifest_id": contract.manifest_id},
         )
     sources = {source.feedback_id: source for source in body.sources}
-    split_map = {"train": "train", "validation": "query", "test": "gallery"}
     handoffs: list[HardSampleHandoff] = []
     for item in contract.items:
         source = sources[item.feedback_id]
+        if item.annotation_schema_id:
+            try:
+                definition = annotation_schema_definition(item.annotation_schema_id)
+            except AnnotationSchemaError as exc:
+                raise InputValidationError(str(exc)) from exc
+            if item.domain and definition["domain"] != item.domain:
+                raise InputValidationError("难例领域与标注模式不一致")
         handoffs.append(
             HardSampleHandoff(
                 handoff_id=item.feedback_id,
@@ -110,7 +124,7 @@ def _domain_manifest(body: HardSampleIntakeRequest, context: RequestContext) -> 
                 person_id=source.person_id,
                 camera_id=source.camera_id,
                 bbox=source.bbox,
-                dataset_split=source.dataset_split or split_map[contract.split],
+                dataset_split=source.dataset_split or contract.split,
                 captured_at=source.captured_at,
                 handoff_metadata={
                     "feedback_id": item.feedback_id,
@@ -118,6 +132,8 @@ def _domain_manifest(body: HardSampleIntakeRequest, context: RequestContext) -> 
                     "model_id": item.model_id,
                     "model_version": item.model_version,
                     "pipeline_id": item.pipeline_id,
+                    "domain": item.domain,
+                    "annotation_schema_id": item.annotation_schema_id,
                     "pipeline_version": item.pipeline_version,
                     "correction": item.correction,
                     "label_schema": contract.label_schema,

@@ -1,0 +1,71 @@
+{
+  "domain": "portrait",
+  "payload_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "persons": {
+        "items": {
+          "additionalProperties": true,
+          "properties": {
+            "bbox": {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                },
+                {
+                  "exclusiveMinimum": 0,
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            "confidence": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "label": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "label",
+            "bbox"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "persons"
+    ],
+    "type": "object"
+  },
+  "quality_rules": [
+    "valid_bbox",
+    "non_empty_persons"
+  ],
+  "schema_id": "scenara.portrait.detection.v1",
+  "schema_version": "1.0",
+  "supported_media_kinds": [
+    "image",
+    "video",
+    "stream"
+  ],
+  "task_type": "person_detection",
+  "version": "1.0.0"
+}

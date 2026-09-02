@@ -1,10 +1,13 @@
 # 更新日志
 
-## [Unreleased]
+## [0.1.6] - 2026-09-02
 
-- 同步 `@scenara/repository-contracts` `1.0.1` 的当前契约摘要，并将 `DatasetVersionReference` 与 `HardSampleManifest` 的跨仓 `created_at` 统一为以 `Z` 结尾的 UTC RFC3339 字符串。
-- Data API 入口继续对 `dataset-version-input` 和 `hard-sample-handoff` 执行严格时间校验；内部领域模型和 PostgreSQL 使用的原生 `datetime/timestamptz` 保持不变。
-- 修正独立数据工作台的契约类型、难例清单提交时间和版本引用展示，移除 Unix 秒及 `* 1000` 转换。
+- **契约与模式升级**：消费并严格锁定 `@scenara/repository-contracts` `1.2.0`（清单摘要 `2889523368f6a4d2297b66fc714dfe38d882add7484605c12dcfa3e2e451d111`）与领域标注模式 `domain-annotations` `1.1.0`（清单摘要 `0f2a7ffb271320d5be45a92bf9fc63b08656c33c1983ee01413d7131ed4ba278`）。
+- **多领域标注与语义校验**：新增 `annotation_schemas.py` 领域标注模式注册表，支持 Portrait（人体检测、人脸识别、布控误报复核 `scenara.portrait.surveillance-review.v1`）、OCR（文档检测、识别、KIE）、Behavior（骨骼姿态、动作识别）、Fashion（服装风格、属性检测）等领域标注模式的 JSON Schema 规范、支持媒体类型及严格领域语义约束校验。
+- **难例交接与布控误报复核支持**：扩展难例交接（`hard-sample-handoff`）数据模型与 API 输入校验，支持 `domain`、`annotation_schema_id` 与结构化 `correction` 复核元数据，扩展数据集拆分类型为 `train`、`validation`、`test`、`query`、`gallery`。
+- **数据集版本引用输出增强**：`dataset-version-input`（`DatasetVersionReference`）发布时自动聚合已采纳标注的所属领域 `domain` 与标注模式列表 `annotation_schema_ids`，供模型训练/评估适配器直接消费。
+- **独立数据工作台体验升级**：升级 `data-console` 工作台版本至 `0.1.6`；难例导入页面（`HardSamplesView.vue`）支持多领域模式切换、布控复核预置元数据模版、纠错内容快捷配置与 JSON 校验；优化字典标签映射（`labels.ts`、`types.ts`）。
+- **契约验证与自动化测试**：新增 `test_domain_annotation_schemas.py` 自动化测试集，更新 `test_core_e2e.py` 适配领域模式与难例交接流程；校准 `scripts/repository_gate.py` 与 `scripts/validate_repository_contracts.py` 严格门禁检查。
 
 ## [0.1.5] - 2026-08-22
 

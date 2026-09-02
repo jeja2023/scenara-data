@@ -2,7 +2,7 @@
 
 **适用规范：** `景枢平台总体开发规范.md` 1.3.0
 
-**当前版本：** `0.1.5`
+**当前版本：** `0.1.6`
 
 **当前成熟度：** `implemented`（未达到 `qualified` 或 `production_ready`）
 
@@ -13,7 +13,7 @@
 - Dataset、Dataset Version、Sample、Annotation、Quality、Lineage、Hard Sample、Builder 和 Provider。
 - `/internal/v1/` 领域 API、租户/项目作用域、幂等、审计、错误信封、请求追踪和 Outbox。
 - PostgreSQL 迁移、内存适配器、对象存储适配器、Redis 任务适配器和迁移包导入。
-- `hard-sample-handoff`、`dataset-version-input` 的已发布契约校验，以及 Core ASGI 端到端回归。
+- `hard-sample-handoff`、`dataset-version-input` 的已发布契约校验，以及 Core ASGI 端到端回归；已适配 `scenara.portrait.surveillance-review.v1` 布控误报复核难例。
 
 ## 剩余交付
 

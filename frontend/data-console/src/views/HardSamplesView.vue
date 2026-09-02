@@ -35,12 +35,12 @@ const manifestDraft = reactive({
   manifest_id: "",
   dataset_id: "",
   version: "1.0.0",
-  label_schema: "scenara.feedback.correction.v1",
+  label_schema: "scenara.portrait.surveillance-review.v1",
   split: "train" as "train" | "validation" | "test",
   created_by: "景枢数据控制台",
   publish: false,
   build_version: "",
-  annotation_schema_id: "",
+  annotation_schema_id: "scenara.portrait.surveillance-review.v1",
 });
 
 const itemDraft = reactive({
@@ -52,7 +52,17 @@ const itemDraft = reactive({
   model_version: "1.0.0",
   pipeline_id: "portrait.pipeline",
   pipeline_version: "1.0.0",
-  correction: JSON.stringify({ label: "person" }, null, 2),
+  correction: JSON.stringify(
+    {
+      alert_id: "alt_...",
+      triage_reason: "人工排除误报",
+      review_outcome: "false_positive",
+    },
+    null,
+    2,
+  ),
+  domain: "portrait",
+  annotation_schema_id: "scenara.portrait.surveillance-review.v1",
   authorized_for_training: true,
   deidentified: true,
 });
@@ -70,7 +80,7 @@ const sourceDraft = reactive({
   person_id: "",
   camera_id: "",
   bbox: "",
-  dataset_split: "train" as "train" | "query" | "gallery",
+  dataset_split: "train" as "train" | "validation" | "test" | "query" | "gallery",
   captured_at: "",
   occurred_at: new Date().toISOString(),
 });
@@ -184,6 +194,8 @@ async function submit(): Promise<void> {
           pipeline_id: itemDraft.pipeline_id.trim(),
           pipeline_version: itemDraft.pipeline_version.trim(),
           correction: parseJson(itemDraft.correction),
+          domain: itemDraft.domain.trim() || null,
+          annotation_schema_id: itemDraft.annotation_schema_id.trim() || null,
           authorized_for_training: itemDraft.authorized_for_training,
           deidentified: itemDraft.deidentified,
         },
@@ -288,7 +300,7 @@ useRefresh(refresh);
           <label><span>标签模式</span><input v-model="manifestDraft.label_schema" /></label>
           <label><span>分割</span><select v-model="manifestDraft.split"><option value="train">{{ labelSampleSplit("train") }}</option><option value="validation">{{ labelSampleSplit("validation") }}</option><option value="test">{{ labelSampleSplit("test") }}</option></select></label>
           <label><span>构建版本</span><input v-model="manifestDraft.build_version" placeholder="1.0.0" /></label>
-          <label><span>注解模式</span><input v-model="manifestDraft.annotation_schema_id" placeholder="scenara.feedback.correction.v1" /></label>
+          <label><span>注解模式</span><input v-model="manifestDraft.annotation_schema_id" placeholder="scenara.portrait.surveillance-review.v1" /></label>
           <label><span>创建者</span><input v-model="manifestDraft.created_by" /></label>
           <label class="toggle"><input v-model="manifestDraft.publish" type="checkbox" />提交后直接发布</label>
         </div>
@@ -296,7 +308,9 @@ useRefresh(refresh);
         <div class="section-title">条目与来源</div>
         <div class="form-grid compact-grid">
           <label><span>反馈 ID</span><input v-model="itemDraft.feedback_id" /></label>
-          <label><span>类型</span><select v-model="itemDraft.kind"><option value="false_positive">{{ labelHardSampleKind("false_positive") }}</option><option value="false_negative">{{ labelHardSampleKind("false_negative") }}</option><option value="wrong_attribute">{{ labelHardSampleKind("wrong_attribute") }}</option><option value="wrong_identity">{{ labelHardSampleKind("wrong_identity") }}</option><option value="ocr_correction">{{ labelHardSampleKind("ocr_correction") }}</option></select></label>
+          <label><span>类型</span><select v-model="itemDraft.kind"><option value="false_positive">{{ labelHardSampleKind("false_positive") }}</option><option value="false_negative">{{ labelHardSampleKind("false_negative") }}</option><option value="wrong_attribute">{{ labelHardSampleKind("wrong_attribute") }}</option><option value="wrong_identity">{{ labelHardSampleKind("wrong_identity") }}</option><option value="ocr_correction">{{ labelHardSampleKind("ocr_correction") }}</option><option value="action_correction">{{ labelHardSampleKind("action_correction") }}</option><option value="temporal_correction">{{ labelHardSampleKind("temporal_correction") }}</option><option value="style_correction">{{ labelHardSampleKind("style_correction") }}</option><option value="character_correction">{{ labelHardSampleKind("character_correction") }}</option><option value="accessory_correction">{{ labelHardSampleKind("accessory_correction") }}</option></select></label>
+          <label><span>领域</span><select v-model="itemDraft.domain"><option value="portrait">人像</option><option value="ocr">OCR</option><option value="behavior">行为识别</option><option value="fashion">服饰风格</option></select></label>
+          <label><span>标注模式</span><input v-model="itemDraft.annotation_schema_id" /></label>
           <label><span>媒体引用</span><input v-model="itemDraft.media_ref" /></label>
           <label><span>结果引用</span><input v-model="itemDraft.result_ref" /></label>
           <label><span>模型 ID</span><input v-model="itemDraft.model_id" /></label>
@@ -321,7 +335,7 @@ useRefresh(refresh);
           <label><span>人员 ID</span><input v-model="sourceDraft.person_id" /></label>
           <label><span>摄像机 ID</span><input v-model="sourceDraft.camera_id" /></label>
           <label><span>边界框</span><input v-model="sourceDraft.bbox" placeholder="1,2,30,40" /></label>
-          <label><span>数据分割</span><select v-model="sourceDraft.dataset_split"><option value="train">{{ labelSampleSplit("train") }}</option><option value="query">{{ labelSampleSplit("query") }}</option><option value="gallery">{{ labelSampleSplit("gallery") }}</option></select></label>
+          <label><span>数据分割</span><select v-model="sourceDraft.dataset_split"><option value="train">{{ labelSampleSplit("train") }}</option><option value="validation">{{ labelSampleSplit("validation") }}</option><option value="test">{{ labelSampleSplit("test") }}</option><option value="query">{{ labelSampleSplit("query") }}</option><option value="gallery">{{ labelSampleSplit("gallery") }}</option></select></label>
           <label><span>采集时间</span><input v-model="sourceDraft.captured_at" placeholder="2026-08-16T12:00:00Z" /></label>
           <label class="span-2"><span>发生时间</span><input v-model="sourceDraft.occurred_at" /></label>
         </div>

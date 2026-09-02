@@ -170,7 +170,7 @@ class Sample(DomainModel):
     person_id: str | None = Field(default=None, max_length=128)
     camera_id: str | None = Field(default=None, max_length=128)
     bbox: tuple[float, float, float, float] | None = None
-    dataset_split: Literal["train", "query", "gallery"] | None = None
+    dataset_split: Literal["train", "validation", "test", "query", "gallery"] | None = None
     captured_at: datetime | None = None
 
     @model_validator(mode="after")
@@ -432,7 +432,7 @@ class HardSampleHandoff(DomainModel):
     person_id: str | None = Field(default=None, max_length=128)
     camera_id: str | None = Field(default=None, max_length=128)
     bbox: tuple[float, float, float, float] | None = None
-    dataset_split: Literal["train", "query", "gallery"] | None = None
+    dataset_split: Literal["train", "validation", "test", "query", "gallery"] | None = None
     captured_at: datetime | None = None
     handoff_metadata: dict[str, Any] = Field(default_factory=dict)
 

@@ -1,0 +1,107 @@
+{
+  "domain": "fashion",
+  "payload_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "accessories": {
+        "items": {
+          "additionalProperties": true,
+          "properties": {
+            "accessory_label": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "accessory_type": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "confidence": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          },
+          "required": [
+            "accessory_type",
+            "accessory_label"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "clothing_styles": {
+        "items": {
+          "additionalProperties": true,
+          "properties": {
+            "confidence": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "style_label": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "style_type": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "style_type",
+            "style_label"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "cosplay": {
+        "items": {
+          "additionalProperties": true,
+          "properties": {
+            "character_name": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "confidence": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "series_name": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "character_name",
+            "series_name"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "cosplay",
+      "clothing_styles",
+      "accessories"
+    ],
+    "type": "object"
+  },
+  "quality_rules": [
+    "known_label_set",
+    "confidence_in_range",
+    "at_least_one_fashion_label"
+  ],
+  "schema_id": "scenara.fashion.style.v1",
+  "schema_version": "1.0",
+  "supported_media_kinds": [
+    "image",
+    "video",
+    "stream"
+  ],
+  "task_type": "fashion_recognition",
+  "version": "1.0.0"
+}

@@ -159,9 +159,13 @@ async def test_core_gateway_against_real_data_asgi() -> None:
             context,
             CreateAnnotationTaskRequest(
                 asset_ids=["ast_e2e"],
-                schema_name="scenara.person.v1",
+                schema_name="scenara.portrait.detection.v1",
                 assignee="annotator-a",
-                labels={"person": "candidate"},
+                    labels={
+                        "persons": [
+                            {"label": "person", "bbox": [1.0, 2.0, 30.0, 40.0]}
+                        ]
+                    },
             ),
         )
         assert task.asset_ids == ["ast_e2e"]
@@ -183,7 +187,14 @@ async def test_core_gateway_against_real_data_asgi() -> None:
             model_version="1.0.0",
             pipeline_id="portrait.pipeline",
             pipeline_version="1.0.0",
-            correction={"label": "hard"},
+            correction={
+                "source": "surveillance_alert",
+                "alert_id": "alt_e2e",
+                "triage_reason": "人工排除误报",
+                "review_outcome": "false_positive",
+            },
+            domain="portrait",
+            annotation_schema_id="scenara.portrait.surveillance-review.v1",
         )
         manifest_values: dict[str, object] = {
             "schema_version": "1.0",
@@ -192,7 +203,7 @@ async def test_core_gateway_against_real_data_asgi() -> None:
             "project_id": "project-a",
             "dataset_id": dataset.dataset_id,
             "version": "1.0.0",
-            "label_schema": "scenara.feedback.correction.v1",
+            "label_schema": "scenara.portrait.surveillance-review.v1",
             "split": "train",
             "items": [item.model_dump(mode="json")],
             "created_by": "user-a",

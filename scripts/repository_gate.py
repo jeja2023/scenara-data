@@ -47,10 +47,14 @@ def main() -> int:
         problems.append("README 必须声明责任团队")
 
     lock = yaml.safe_load((ROOT / "configs/contracts/repository-contracts.yml").read_text(encoding="utf-8"))
-    if lock.get("version") != "1.0.1":
-        problems.append("仓库契约版本必须固定为 1.0.1")
-    if lock.get("manifest_sha256") != "a1da1401b80827e1fb354e899e9b2358d8cb1109eaeb5a86ea4b07c2c9b3feb8":
+    if lock.get("version") != "1.2.0":
+        problems.append("仓库契约版本必须固定为 1.2.0")
+    if lock.get("manifest_sha256") != "2889523368f6a4d2297b66fc714dfe38d882add7484605c12dcfa3e2e451d111":
         problems.append("仓库契约清单摘要与已发布版本不一致")
+    if lock.get("domain_annotation_release") != "1.1.0":
+        problems.append("领域标注模式版本必须固定为 1.1.0")
+    if lock.get("domain_annotation_manifest_sha256") != "0f2a7ffb271320d5be45a92bf9fc63b08656c33c1983ee01413d7131ed4ba278":
+        problems.append("领域标注模式清单摘要与已发布版本不一致")
 
     contracts_root = ROOT / "scenara-contracts"
     if not contracts_root.is_dir():

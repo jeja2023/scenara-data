@@ -1,0 +1,191 @@
+{
+  "$defs": {
+    "FeedbackKind": {
+      "enum": [
+        "false_positive",
+        "false_negative",
+        "wrong_attribute",
+        "wrong_identity",
+        "ocr_correction",
+        "action_correction",
+        "temporal_correction",
+        "style_correction",
+        "character_correction",
+        "accessory_correction"
+      ],
+      "title": "FeedbackKind",
+      "type": "string"
+    },
+    "HardSampleItem": {
+      "additionalProperties": false,
+      "properties": {
+        "annotation_schema_id": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Annotation Schema Id"
+        },
+        "authorized_for_training": {
+          "default": true,
+          "title": "Authorized For Training",
+          "type": "boolean"
+        },
+        "correction": {
+          "additionalProperties": true,
+          "title": "Correction",
+          "type": "object"
+        },
+        "deidentified": {
+          "default": true,
+          "title": "Deidentified",
+          "type": "boolean"
+        },
+        "domain": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_.-]{1,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Domain"
+        },
+        "feedback_id": {
+          "title": "Feedback Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/FeedbackKind"
+        },
+        "media_ref": {
+          "title": "Media Ref",
+          "type": "string"
+        },
+        "model_id": {
+          "title": "Model Id",
+          "type": "string"
+        },
+        "model_version": {
+          "title": "Model Version",
+          "type": "string"
+        },
+        "pipeline_id": {
+          "title": "Pipeline Id",
+          "type": "string"
+        },
+        "pipeline_version": {
+          "title": "Pipeline Version",
+          "type": "string"
+        },
+        "result_ref": {
+          "title": "Result Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "feedback_id",
+        "kind",
+        "media_ref",
+        "result_ref",
+        "model_id",
+        "model_version",
+        "pipeline_id",
+        "pipeline_version",
+        "correction"
+      ],
+      "title": "HardSampleItem",
+      "type": "object"
+    }
+  },
+  "$id": "https://contracts.scenara.dev/repository/1.2.0/hard-sample-handoff.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "created_at": {
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,6})?Z$",
+      "title": "Created At",
+      "type": "string"
+    },
+    "created_by": {
+      "title": "Created By",
+      "type": "string"
+    },
+    "dataset_id": {
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/HardSampleItem"
+      },
+      "title": "Items",
+      "type": "array"
+    },
+    "label_schema": {
+      "default": "scenara.feedback.correction.v1",
+      "title": "Label Schema",
+      "type": "string"
+    },
+    "manifest_id": {
+      "title": "Manifest Id",
+      "type": "string"
+    },
+    "project_id": {
+      "title": "Project Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Sha256",
+      "type": "string"
+    },
+    "split": {
+      "default": "train",
+      "enum": [
+        "train",
+        "validation",
+        "test"
+      ],
+      "title": "Split",
+      "type": "string"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "version": {
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "manifest_id",
+    "tenant_id",
+    "project_id",
+    "dataset_id",
+    "version",
+    "items",
+    "sha256",
+    "created_by",
+    "created_at"
+  ],
+  "title": "HardSampleManifest",
+  "type": "object"
+}

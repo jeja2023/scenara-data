@@ -1,0 +1,32 @@
+{
+  "adapter": "paddlevideo",
+  "artifact_files": [
+    {
+      "media_type": "application/octet-stream",
+      "path": "models/pptsm.pdparams",
+      "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "size_bytes": 1048576
+    }
+  ],
+  "artifact_format": "bundle",
+  "capability": "action_recognition",
+  "domain": "behavior",
+  "evaluation_evidence": [
+    "https://artifacts.example/evaluation.json#sha256=cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  ],
+  "input_schema": null,
+  "license_id": "LicenseRef-Proprietary-Approved",
+  "model_card": "https://artifacts.example/model-card.json#sha256=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "model_id": "scenara.behavior.action-recognizer",
+  "output_schema": null,
+  "production_ready": true,
+  "regression_samples": [
+    "behavior-regression-v1"
+  ],
+  "runtime_model_id": "scenara.behavior/action_recognizer_v1",
+  "schema_version": "1.0",
+  "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "source_uri": "oci://registry.example/scenara/person-detector@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "version": "1.0.0",
+  "vram_mb": 6144
+}

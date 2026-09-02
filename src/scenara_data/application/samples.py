@@ -18,7 +18,7 @@ from scenara_data.ports.interfaces import (
     UnitOfWork,
 )
 
-DatasetSplit = Literal["train", "query", "gallery"]
+DatasetSplit = Literal["train", "validation", "test", "query", "gallery"]
 
 
 class SampleService(ApplicationService):

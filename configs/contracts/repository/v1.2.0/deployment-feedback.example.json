@@ -1,0 +1,19 @@
+{
+  "action": "transition",
+  "audit_id": "aud_contractexample",
+  "capability": "person_detection",
+  "created_at": "2026-08-18T00:00:00Z",
+  "domain": null,
+  "event_id": "mde_contractexample",
+  "from_status": "approved",
+  "model_id": "scenara.portrait.person-detector",
+  "operator_id": "service-account:model-release-manager",
+  "package_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "project_id": "project-example",
+  "reason": "qualification passed",
+  "runtime_model_id": "scenara.portrait/person_detector_v1",
+  "schema_version": "1.0",
+  "tenant_id": "tenant-example",
+  "to_status": "active",
+  "version": "1.0.0"
+}

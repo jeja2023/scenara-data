@@ -1,0 +1,42 @@
+{
+  "release_version": "1.1.0",
+  "schema_version": "1.0",
+  "schemas": [
+    {
+      "path": "contracts/domain-annotations/v1.1.0/scenara.feedback.correction.v1.json",
+      "schema_id": "scenara.feedback.correction.v1",
+      "sha256": "84cbb16e38291d3082eb5e0f7376e39468669c5902b7477d68918b8a4ac53404",
+      "version": "1.0.0"
+    },
+    {
+      "path": "contracts/domain-annotations/v1.1.0/scenara.portrait.detection.v1.json",
+      "schema_id": "scenara.portrait.detection.v1",
+      "sha256": "3e18c714dc1d0a354c3b84f44aa619693dff4feada78cadb9ccad4eb275099f8",
+      "version": "1.0.0"
+    },
+    {
+      "path": "contracts/domain-annotations/v1.1.0/scenara.portrait.surveillance-review.v1.json",
+      "schema_id": "scenara.portrait.surveillance-review.v1",
+      "sha256": "d4b7834c862585358c222ec7c52c522b7c21c0ee73d7e102f5d9233d5892ea3b",
+      "version": "1.0.0"
+    },
+    {
+      "path": "contracts/domain-annotations/v1.1.0/scenara.ocr.document.v1.json",
+      "schema_id": "scenara.ocr.document.v1",
+      "sha256": "4fa1e94ab9a0163f7c49e7e6c6b88c904f65e27ad485fc25186975d84cd1a522",
+      "version": "1.0.0"
+    },
+    {
+      "path": "contracts/domain-annotations/v1.1.0/scenara.behavior.action.v1.json",
+      "schema_id": "scenara.behavior.action.v1",
+      "sha256": "fbca4e4b1160a140eefe57fee94eaf2b7079e473625eb9dc6c4a344eb906ded9",
+      "version": "1.0.0"
+    },
+    {
+      "path": "contracts/domain-annotations/v1.1.0/scenara.fashion.style.v1.json",
+      "schema_id": "scenara.fashion.style.v1",
+      "sha256": "ce0beec00fa02a2b55042bf6089d9aab9cfac123559d34611f458280cc467806",
+      "version": "1.0.0"
+    }
+  ]
+}

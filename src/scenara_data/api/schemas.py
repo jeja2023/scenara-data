@@ -41,7 +41,7 @@ from scenara_data.domain.models import (
     Sample,
 )
 
-DatasetSplit = Literal["train", "query", "gallery"]
+DatasetSplit = Literal["train", "validation", "test", "query", "gallery"]
 GrantPermission = Literal["manifest.read", "objects.read"]
 
 
@@ -157,7 +157,7 @@ class PublicationResponse(ApiModel):
 
 
 class DatasetVersionReference(ApiModel):
-    """`@scenara/repository-contracts` 1.0.1 的 `dataset-version-input` 契约。"""
+    """`@scenara/repository-contracts` 1.2.0 的 `dataset-version-input` 契约。"""
 
     schema_version: Literal["1.0"] = contracts.DATASET_VERSION_INPUT_SCHEMA_VERSION  # type: ignore[assignment]
     dataset_id: str
@@ -168,6 +168,8 @@ class DatasetVersionReference(ApiModel):
     authorization_id: str = Field(min_length=1, max_length=256)
     authorized_consumer_repository_ids: tuple[str, ...] = Field(min_length=1, max_length=32)
     created_at: str = Field(pattern=RFC3339_UTC.pattern)
+    domain: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_.-]{1,63}$")
+    annotation_schema_ids: tuple[str, ...] = Field(default_factory=tuple, max_length=100)
 
     @field_validator("created_at")
     @classmethod
@@ -182,6 +184,8 @@ class DatasetVersionReference(ApiModel):
             raise ValueError("manifest_uri 中的摘要必须与 manifest_sha256 一致")
         if any("#sha256=" not in item and "@sha256:" not in item for item in self.lineage_refs):
             raise ValueError("lineage_refs 必须是带摘要的不可变引用")
+        if len(self.annotation_schema_ids) != len(set(self.annotation_schema_ids)):
+            raise ValueError("annotation_schema_ids 必须唯一")
         return self
 
 
@@ -300,6 +304,11 @@ class HardSampleContractItem(ApiModel):
         "wrong_attribute",
         "wrong_identity",
         "ocr_correction",
+        "action_correction",
+        "temporal_correction",
+        "style_correction",
+        "character_correction",
+        "accessory_correction",
     ]
     media_ref: str
     result_ref: str
@@ -310,10 +319,12 @@ class HardSampleContractItem(ApiModel):
     correction: dict[str, Any]
     authorized_for_training: bool = True
     deidentified: bool = True
+    domain: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_.-]{1,63}$")
+    annotation_schema_id: str | None = Field(default=None, min_length=1, max_length=256)
 
 
 class HardSampleContractManifest(ApiModel):
-    """已发布的 `hard-sample-handoff` 1.0.1 载荷，不包含本地扩展字段。"""
+    """已发布的 `hard-sample-handoff` 1.2.0 载荷，不包含本地扩展字段。"""
 
     schema_version: Literal["1.0"] = contracts.HARD_SAMPLE_MANIFEST_SCHEMA_VERSION  # type: ignore[assignment]
     manifest_id: str

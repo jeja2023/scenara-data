@@ -1,0 +1,19 @@
+{
+  "annotation_schema_ids": [
+    "scenara.behavior.action.v1"
+  ],
+  "authorization_id": "grant_training_2026_07",
+  "authorized_consumer_repository_ids": [
+    "scenara-model"
+  ],
+  "created_at": "2026-08-18T00:00:00Z",
+  "dataset_id": "behavior.training",
+  "domain": "behavior",
+  "lineage_refs": [
+    "https://data.example/lineage/source.json#sha256=eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  ],
+  "manifest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "manifest_uri": "https://data.example/manifests/2.1.0.json#sha256=dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "schema_version": "1.0",
+  "version": "2.1.0"
+}

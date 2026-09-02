@@ -1,0 +1,38 @@
+{
+  "created_at": "2026-08-18T00:00:00Z",
+  "created_by": "service-account:model-feedback-exporter",
+  "dataset_id": "portrait.hard-samples",
+  "items": [
+    {
+      "annotation_schema_id": "scenara.portrait.detection.v1",
+      "authorized_for_training": true,
+      "correction": {
+        "bbox": [
+          1,
+          2,
+          30,
+          40
+        ],
+        "label": "person"
+      },
+      "deidentified": true,
+      "domain": "portrait",
+      "feedback_id": "fbk_contractexample",
+      "kind": "false_negative",
+      "media_ref": "objects/media/example",
+      "model_id": "scenara.portrait.person-detector",
+      "model_version": "1.0.0",
+      "pipeline_id": "portrait.person-detection",
+      "pipeline_version": "0.1.0",
+      "result_ref": "objects/results/example.json"
+    }
+  ],
+  "label_schema": "scenara.feedback.correction.v1",
+  "manifest_id": "hsm_contractexample",
+  "project_id": "project-example",
+  "schema_version": "1.0",
+  "sha256": "bc3a7327e550d8192c8d49b482664827595ffd37bf34ec911f53cd595131ed8d",
+  "split": "train",
+  "tenant_id": "tenant-example",
+  "version": "1.0.0"
+}

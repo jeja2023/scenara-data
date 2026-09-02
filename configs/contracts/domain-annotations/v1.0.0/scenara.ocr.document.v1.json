@@ -1,0 +1,89 @@
+{
+  "domain": "ocr",
+  "payload_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "blocks": {
+        "items": {
+          "additionalProperties": true,
+          "properties": {
+            "block_type": {
+              "enum": [
+                "text",
+                "title",
+                "paragraph",
+                "image",
+                "table"
+              ]
+            },
+            "polygon": {
+              "items": {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              "minItems": 3,
+              "type": "array"
+            },
+            "reading_order": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "score": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "text",
+            "block_type",
+            "polygon"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "language": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "text": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "blocks"
+    ],
+    "type": "object"
+  },
+  "quality_rules": [
+    "valid_polygon",
+    "reading_order_unique",
+    "non_empty_text_or_region"
+  ],
+  "schema_id": "scenara.ocr.document.v1",
+  "schema_version": "1.0",
+  "supported_media_kinds": [
+    "image",
+    "document",
+    "video",
+    "stream"
+  ],
+  "task_type": "document_recognition",
+  "version": "1.0.0"
+}

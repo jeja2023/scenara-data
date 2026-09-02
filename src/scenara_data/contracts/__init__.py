@@ -10,9 +10,9 @@ from __future__ import annotations
 from types import MappingProxyType
 
 CONTRACT_PACKAGE = "@scenara/repository-contracts"
-CONTRACT_VERSION = "1.0.1"
+CONTRACT_VERSION = "1.2.0"
 CONTRACT_SOURCE_REPOSITORY = "scenara-contracts"
-CONTRACT_MANIFEST_SHA256 = "a1da1401b80827e1fb354e899e9b2358d8cb1109eaeb5a86ea4b07c2c9b3feb8"
+CONTRACT_MANIFEST_SHA256 = "2889523368f6a4d2297b66fc714dfe38d882add7484605c12dcfa3e2e451d111"
 
 EVENT_ENVELOPE_VERSION = "1.0"
 ERROR_ENVELOPE_VERSION = "1.0"
@@ -21,6 +21,7 @@ EVENT_PRODUCER = "scenara-data"
 #: 本仓库消费的契约。
 CONSUMED_CONTRACTS: tuple[str, ...] = (
     "hard-sample-handoff",
+    "domain-annotation-schema",
     "object-reference",
     "event-envelope",
     "iam-context",

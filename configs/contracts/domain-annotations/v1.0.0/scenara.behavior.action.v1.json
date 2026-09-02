@@ -1,0 +1,94 @@
+{
+  "domain": "behavior",
+  "payload_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "actions": {
+        "items": {
+          "additionalProperties": true,
+          "properties": {
+            "action_type": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "confidence": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "end_ms": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "start_ms": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "track_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "action_type",
+            "start_ms",
+            "end_ms"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      },
+      "segments": {
+        "items": {
+          "additionalProperties": true,
+          "properties": {
+            "confidence": {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            "end_ms": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "segment_type": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "start_ms": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "segment_type",
+            "start_ms",
+            "end_ms"
+          ],
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    "required": [
+      "actions"
+    ],
+    "type": "object"
+  },
+  "quality_rules": [
+    "non_empty_actions",
+    "valid_temporal_range",
+    "non_overlapping_duplicate_labels"
+  ],
+  "schema_id": "scenara.behavior.action.v1",
+  "schema_version": "1.0",
+  "supported_media_kinds": [
+    "video",
+    "stream"
+  ],
+  "task_type": "action_recognition",
+  "version": "1.0.0"
+}

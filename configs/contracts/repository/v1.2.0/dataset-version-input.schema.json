@@ -1,0 +1,96 @@
+{
+  "$id": "https://contracts.scenara.dev/repository/1.2.0/dataset-version-input.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "annotation_schema_ids": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 100,
+      "title": "Annotation Schema Ids",
+      "type": "array"
+    },
+    "authorization_id": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Authorization Id",
+      "type": "string"
+    },
+    "authorized_consumer_repository_ids": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Authorized Consumer Repository Ids",
+      "type": "array"
+    },
+    "created_at": {
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,6})?Z$",
+      "title": "Created At",
+      "type": "string"
+    },
+    "dataset_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{1,127}$",
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "domain": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_.-]{1,63}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Domain"
+    },
+    "lineage_refs": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 100,
+      "minItems": 1,
+      "title": "Lineage Refs",
+      "type": "array"
+    },
+    "manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Manifest Sha256",
+      "type": "string"
+    },
+    "manifest_uri": {
+      "maxLength": 2048,
+      "pattern": "^.+(?:@sha256:|#sha256=)[0-9a-f]{64}$",
+      "title": "Manifest Uri",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "version": {
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[a-z0-9.-]+)?$",
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "dataset_id",
+    "version",
+    "manifest_uri",
+    "manifest_sha256",
+    "lineage_refs",
+    "authorization_id",
+    "authorized_consumer_repository_ids",
+    "created_at"
+  ],
+  "title": "DatasetVersionReference",
+  "type": "object"
+}

@@ -1,0 +1,204 @@
+{
+  "$defs": {
+    "ModelArtifactFile": {
+      "additionalProperties": false,
+      "properties": {
+        "media_type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "path": {
+          "maxLength": 512,
+          "pattern": "^[^/\\\\\\s][^\\\\]*$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "sha256",
+        "size_bytes",
+        "media_type"
+      ],
+      "title": "ModelArtifactFile",
+      "type": "object"
+    }
+  },
+  "$id": "https://contracts.scenara.dev/repository/1.2.0/model-package-admission.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "adapter": {
+      "maxLength": 64,
+      "minLength": 2,
+      "title": "Adapter",
+      "type": "string"
+    },
+    "artifact_files": {
+      "items": {
+        "$ref": "#/$defs/ModelArtifactFile"
+      },
+      "maxItems": 1000,
+      "title": "Artifact Files",
+      "type": "array"
+    },
+    "artifact_format": {
+      "default": "onnx",
+      "enum": [
+        "onnx",
+        "paddle",
+        "pytorch",
+        "bundle"
+      ],
+      "title": "Artifact Format",
+      "type": "string"
+    },
+    "capability": {
+      "pattern": "^[a-z][a-z0-9_.-]{1,127}$",
+      "title": "Capability",
+      "type": "string"
+    },
+    "domain": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_.-]{1,63}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Domain"
+    },
+    "evaluation_evidence": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 100,
+      "minItems": 1,
+      "title": "Evaluation Evidence",
+      "type": "array"
+    },
+    "input_schema": {
+      "anyOf": [
+        {
+          "maxLength": 2048,
+          "pattern": "^.+(?:@sha256:|#sha256=)[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Input Schema"
+    },
+    "license_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "License Id",
+      "type": "string"
+    },
+    "model_card": {
+      "maxLength": 2048,
+      "minLength": 1,
+      "title": "Model Card",
+      "type": "string"
+    },
+    "model_id": {
+      "pattern": "^[a-z][a-z0-9_.-]{1,127}$",
+      "title": "Model Id",
+      "type": "string"
+    },
+    "output_schema": {
+      "anyOf": [
+        {
+          "maxLength": 2048,
+          "pattern": "^.+(?:@sha256:|#sha256=)[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Output Schema"
+    },
+    "production_ready": {
+      "default": false,
+      "title": "Production Ready",
+      "type": "boolean"
+    },
+    "regression_samples": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Regression Samples",
+      "type": "array"
+    },
+    "runtime_model_id": {
+      "maxLength": 384,
+      "pattern": "^[^/\\\\\\s]+/[^/\\\\\\s]+$",
+      "title": "Runtime Model Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Sha256",
+      "type": "string"
+    },
+    "source_uri": {
+      "maxLength": 2048,
+      "minLength": 1,
+      "title": "Source Uri",
+      "type": "string"
+    },
+    "version": {
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[a-z0-9.-]+)?$",
+      "title": "Version",
+      "type": "string"
+    },
+    "vram_mb": {
+      "maximum": 196608,
+      "minimum": 0,
+      "title": "Vram Mb",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "model_id",
+    "version",
+    "capability",
+    "adapter",
+    "runtime_model_id",
+    "sha256",
+    "source_uri",
+    "license_id",
+    "model_card",
+    "evaluation_evidence",
+    "vram_mb",
+    "regression_samples"
+  ],
+  "title": "ModelPackageManifest",
+  "type": "object"
+}

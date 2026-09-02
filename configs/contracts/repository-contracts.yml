@@ -1,11 +1,14 @@
 package: "@scenara/repository-contracts"
-version: "1.0.1"
-manifest_sha256: "a1da1401b80827e1fb354e899e9b2358d8cb1109eaeb5a86ea4b07c2c9b3feb8"
+version: "1.2.0"
+manifest_sha256: "2889523368f6a4d2297b66fc714dfe38d882add7484605c12dcfa3e2e451d111"
+domain_annotation_release: "1.1.0"
+domain_annotation_manifest_sha256: "0f2a7ffb271320d5be45a92bf9fc63b08656c33c1983ee01413d7131ed4ba278"
 source_repository: "scenara-contracts"
 produces:
   - dataset-version-input
 consumes:
   - hard-sample-handoff
+  - domain-annotation-schema
 policy:
   allow_source_imports: false
   require_published_release: true

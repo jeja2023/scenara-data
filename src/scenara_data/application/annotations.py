@@ -15,6 +15,12 @@ from scenara_data.application.errors import (
     ResourceNotFoundError,
 )
 from scenara_data.application.support import ApplicationService, Clock, new_id, transactional, utc_now
+from scenara_data.domain.annotation_schemas import (
+    AnnotationSchemaError,
+    annotation_schema_definition,
+    normalized_media_kind,
+    validate_annotation_payload,
+)
 from scenara_data.domain.models import (
     Annotation,
     AnnotationAssignment,
@@ -26,6 +32,7 @@ from scenara_data.domain.models import (
     AnnotationTask,
     AnnotationTaskStatus,
     ObjectReference,
+    Sample,
 )
 from scenara_data.domain.services import annotation_snapshot_checksum
 from scenara_data.ports.interfaces import (
@@ -70,7 +77,15 @@ class AnnotationService(ApplicationService):
         task_id: str | None = None,
     ) -> Annotation:
         self._require(context, "data.annotation.create")
-        self._require_sample(sample_id, context)
+        sample = self._require_sample(sample_id, context)
+        try:
+            validate_annotation_payload(
+                schema_id,
+                payload,
+                media_kind=sample.media_kind or sample.media_type,
+            )
+        except AnnotationSchemaError as exc:
+            raise InputValidationError(str(exc), details={"schema_id": schema_id}) from exc
         if task_id is not None:
             task = self._require_task(task_id, context)
             if sample_id not in task.sample_ids:
@@ -117,6 +132,15 @@ class AnnotationService(ApplicationService):
     ) -> tuple[Annotation, AnnotationRevision]:
         self._require(context, "data.annotation.create")
         current = self.require_annotation(annotation_id, context)
+        sample = self._require_sample(current.sample_id, context)
+        try:
+            validate_annotation_payload(
+                current.schema_id,
+                payload,
+                media_kind=sample.media_kind or sample.media_type,
+            )
+        except AnnotationSchemaError as exc:
+            raise InputValidationError(str(exc), details={"schema_id": current.schema_id}) from exc
         occurred_at = self._clock()
         revision = AnnotationRevision(
             revision_id=new_id("anr"),
@@ -228,10 +252,20 @@ class AnnotationService(ApplicationService):
     ) -> AnnotationTask:
         self._require(context, "data.annotation.create")
         self._require_dataset(dataset_id, context)
+        try:
+            definition = annotation_schema_definition(schema_id)
+        except AnnotationSchemaError as exc:
+            raise InputValidationError(str(exc), details={"schema_id": schema_id}) from exc
         if len(set(sample_ids)) != len(sample_ids):
             raise InputValidationError("标注任务样本不能重复")
         for sample_id in sample_ids:
-            self._require_sample(sample_id, context)
+            sample = self._require_sample(sample_id, context)
+            media_kind = normalized_media_kind(sample.media_kind or sample.media_type)
+            if media_kind not in definition["supported_media_kinds"]:
+                raise InputValidationError(
+                    "标注任务模式不支持样本媒体类型",
+                    details={"schema_id": schema_id, "sample_id": sample_id, "media_kind": media_kind},
+                )
         if provider_id is not None:
             self._require_provider(provider_id, context)
         occurred_at = self._clock()
@@ -549,9 +583,9 @@ class AnnotationService(ApplicationService):
         except KeyError as exc:
             raise ResourceNotFoundError("annotation_provider", provider_id) from exc
 
-    def _require_sample(self, sample_id: str, context: RequestContext) -> None:
+    def _require_sample(self, sample_id: str, context: RequestContext) -> Sample:
         try:
-            self._samples.get_sample(sample_id, context.organization_id, context.project_id)
+            return self._samples.get_sample(sample_id, context.organization_id, context.project_id)
         except KeyError as exc:
             raise ResourceNotFoundError("sample", sample_id) from exc
 

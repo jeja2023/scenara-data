@@ -23,7 +23,9 @@ from scenara_data.application.errors import (
 from scenara_data.application.lineage import LineageService
 from scenara_data.application.quality import QualityService
 from scenara_data.application.support import ApplicationService, Clock, new_id, transactional, utc_now
+from scenara_data.domain.annotation_schemas import annotation_schema_definition
 from scenara_data.domain.models import (
+    AnnotationStatus,
     DataQualityReport,
     Dataset,
     DatasetAccessGrant,
@@ -535,6 +537,23 @@ class DatasetService(ApplicationService):
             bucket=self._manifest_bucket,
         )
         grant = active_grants[0]
+        samples = self._samples.list_version_samples(
+            dataset_version_id, context.organization_id, context.project_id
+        )
+        annotation_schema_ids: set[str] = set()
+        domains: set[str] = set()
+        for sample in samples:
+            annotations, _ = self._annotations.list_annotations(
+                sample.sample_id, context, limit=10_000, offset=0
+            )
+            for annotation in annotations:
+                if annotation.status != AnnotationStatus.ACCEPTED:
+                    continue
+                annotation_schema_ids.add(annotation.schema_id)
+                try:
+                    domains.add(str(annotation_schema_definition(annotation.schema_id)["domain"]))
+                except ValueError:
+                    continue
         return {
             "schema_version": contracts.DATASET_VERSION_INPUT_SCHEMA_VERSION,
             "dataset_id": value.dataset_id,
@@ -545,6 +564,8 @@ class DatasetService(ApplicationService):
             "authorization_id": grant.grant_id,
             "authorized_consumer_repository_ids": ["scenara-model"],
             "created_at": rfc3339(value.published_at),
+            "domain": next(iter(domains)) if len(domains) == 1 else None,
+            "annotation_schema_ids": sorted(annotation_schema_ids),
         }
 
     def read_manifest(self, dataset_version_id: str, context: RequestContext) -> dict[str, Any]:

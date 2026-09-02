@@ -1,0 +1,125 @@
+{
+  "$defs": {
+    "ModelReleaseStatus": {
+      "enum": [
+        "candidate",
+        "validated",
+        "approved",
+        "active",
+        "retired"
+      ],
+      "title": "ModelReleaseStatus",
+      "type": "string"
+    }
+  },
+  "$id": "https://contracts.scenara.dev/repository/1.2.0/deployment-feedback.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "action": {
+      "title": "Action",
+      "type": "string"
+    },
+    "audit_id": {
+      "title": "Audit Id",
+      "type": "string"
+    },
+    "capability": {
+      "title": "Capability",
+      "type": "string"
+    },
+    "created_at": {
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,6})?Z$",
+      "title": "Created At",
+      "type": "string"
+    },
+    "domain": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_.-]{1,63}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Domain"
+    },
+    "event_id": {
+      "title": "Event Id",
+      "type": "string"
+    },
+    "from_status": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ModelReleaseStatus"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "model_id": {
+      "title": "Model Id",
+      "type": "string"
+    },
+    "operator_id": {
+      "title": "Operator Id",
+      "type": "string"
+    },
+    "package_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Package Sha256",
+      "type": "string"
+    },
+    "project_id": {
+      "title": "Project Id",
+      "type": "string"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "runtime_model_id": {
+      "title": "Runtime Model Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "tenant_id": {
+      "title": "Tenant Id",
+      "type": "string"
+    },
+    "to_status": {
+      "$ref": "#/$defs/ModelReleaseStatus"
+    },
+    "version": {
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "event_id",
+    "tenant_id",
+    "project_id",
+    "model_id",
+    "version",
+    "capability",
+    "runtime_model_id",
+    "package_sha256",
+    "action",
+    "from_status",
+    "to_status",
+    "reason",
+    "operator_id",
+    "audit_id",
+    "created_at"
+  ],
+  "title": "ModelDeploymentEvent",
+  "type": "object"
+}

@@ -1,0 +1,40 @@
+{
+  "domain": "portrait",
+  "payload_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": true,
+    "properties": {
+      "alert_id": {
+        "pattern": "^alt_[A-Za-z0-9]+$",
+        "type": "string"
+      },
+      "review_outcome": {
+        "const": "false_positive"
+      },
+      "triage_reason": {
+        "maxLength": 256,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    "required": [
+      "alert_id",
+      "triage_reason",
+      "review_outcome"
+    ],
+    "type": "object"
+  },
+  "quality_rules": [
+    "false_positive_review",
+    "non_empty_triage_reason"
+  ],
+  "schema_id": "scenara.portrait.surveillance-review.v1",
+  "schema_version": "1.0",
+  "supported_media_kinds": [
+    "image",
+    "video",
+    "stream"
+  ],
+  "task_type": "surveillance_match_review",
+  "version": "1.0.0"
+}

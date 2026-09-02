@@ -1,0 +1,22 @@
+{
+  "domain": "feedback",
+  "payload_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": true,
+    "minProperties": 1,
+    "type": "object"
+  },
+  "quality_rules": [
+    "non_empty_correction"
+  ],
+  "schema_id": "scenara.feedback.correction.v1",
+  "schema_version": "1.0",
+  "supported_media_kinds": [
+    "image",
+    "video",
+    "document",
+    "stream"
+  ],
+  "task_type": "generic_correction",
+  "version": "1.0.0"
+}
