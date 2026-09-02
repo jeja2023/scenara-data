@@ -1,23 +1,23 @@
-# 景枢数据
+# 景枢数据平台
 
-`scenara-data` 是景枢数据平台责任仓库，负责数据资产、样本、数据集、不可变数据集版本、标注、数据质量、数据血缘、难例和数据集构建。它不负责模型训练、生产推理、共享身份与访问管理、统一控制台或 API 网关。
+`scenara-data` 是景枢数据平台责任仓库，负责数据资产、样本、数据集、不可变数据集版本、标注、数据质量、数据血缘、难例和数据集构建。它不负责模型训练、生产推理、共享身份与访问管理、统一控制台门户或 API 网关。
 
 - 当前版本：`0.1.6`
 - 当前成熟度：`implemented`
 - 责任团队：景枢数据
-- 规范来源：`景枢平台总体开发规范.md` `1.3.0`
+- 规范来源：《景枢平台总体开发规范》`1.3.0`
 
-当前实现已建立领域模型、状态机、内存与 PostgreSQL/S3/Redis 适配器、正式内部数据集 API、迁移导入命令行工具、事件 Outbox 工作进程、独立 Vue 数据工作台、身份权限、审计、正式契约门禁、跨仓库端到端测试和自动化测试。`0.1.6` 消费 Contracts `1.2.0`，按摘要锁定 Portrait、OCR、Behavior、Fashion、布控误报复核及历史难例兼容模式，验证标注 JSON Schema、媒体类型和领域语义，并支持 `train/validation/test/query/gallery` 数据分割。真实基础设施资格、容量、恢复和更完整的生产证据仍未完成，因此不得标记为 `production_ready`。
+当前实现已建立核心领域模型、状态机、内存与 PostgreSQL/S3/Redis 适配器、正式内部数据集 API、离线迁移导入命令行工具、事件发件箱（Outbox）工作进程、独立 Vue 数据工作台、身份权限校验、不可变审计、正式契约门禁、跨仓库端到端测试和自动化测试。`0.1.6` 消费 Contracts `1.2.0`，按清单 SHA-256 摘要锁定人体检测（Portrait）、OCR 文档识别、行为动作（Behavior）、服饰属性（Fashion）、布控误报复核及历史难例兼容模式，验证标注 JSON Schema、媒体类型和领域语义，并支持 `train/validation/test/query/gallery` 数据拆分。真实基础设施资格、容量、恢复和更完整的生产证据仍未完成，因此不得标记为 `production_ready`。
 
 剩余任务和生产资格前置条件见 [剩余任务计划](docs/REMAINING_TASK_PLAN.md)。
 
-## 边界
+## 职责与边界
 
-- 训练输入只发布不可变数据集版本引用，不向模型平台暴露本地路径或数据库表。
-- 通过 `hard-sample-handoff` 接收 Core 平台已批准、已授权、已脱敏的难例清单。
-- 通过 `dataset-version-input` 向模型平台发布版本、血缘、授权和清单摘要。
-- 用户、组织、项目、角色和 API 密钥由 `scenara` 统一管理；数据平台只验证透传身份和权限。
-- 用户界面由 `scenara` 提供统一控制台门户和导航壳，本仓库可以建设独立前端，但必须遵循统一设计系统、主题令牌和门户接入规范。
+- 训练输入只发布不可变数据集版本引用（`DatasetVersionReference`），不向模型平台暴露本地文件路径或数据库表。
+- 通过难例交接清单（`hard-sample-handoff`）接收核心平台（Core）已批准、已授权、已脱敏的难例清单。
+- 通过数据集版本输入（`dataset-version-input`）向模型平台发布版本、血缘、授权和清单摘要。
+- 用户、组织、项目、角色和 API 密钥由核心平台统一管理；数据平台只验证透传身份和权限。
+- 用户界面由核心平台提供统一控制台门户和导航壳，本仓库建设独立前端数据工作台，必须遵循统一设计系统、主题令牌和门户接入规范。
 
 ## 本地验证
 
@@ -30,7 +30,7 @@ python start.py --reload
 uvicorn scenara_data.api.app:app --host 127.0.0.1 --port 8081
 ```
 
-`start.py` 支持三种模式：`all`（后端 + 前端）、`backend`、`frontend`。它会在启动前检查本机 PostgreSQL、Redis 和 MinIO 是否可连，并为开发态自动补齐 `SCENARA_DATA_CORE_EVENT_ENDPOINT` 与 `SCENARA_DATA_CORE_EVENT_TOKEN`；如果默认端口被占用，它会自动切换到下一个可用端口并提示你。若需覆盖默认探测地址，可设置 `SCENARA_DATA_INTEGRATION_DATABASE_URL`、`SCENARA_DATA_INTEGRATION_REDIS_URL`、`SCENARA_DATA_INTEGRATION_S3_ENDPOINT_URL`、`SCENARA_DATA_INTEGRATION_S3_ACCESS_KEY_ID` 和 `SCENARA_DATA_INTEGRATION_S3_SECRET_ACCESS_KEY`。
+启动脚本 `start.py` 支持三种模式：`all`（全组件：后端 + 前端）、`backend`（仅后端）、`frontend`（仅前端）。它会在启动前检查本机 PostgreSQL、Redis 和 MinIO 是否可连，并为开发态自动补齐 `SCENARA_DATA_CORE_EVENT_ENDPOINT` 与 `SCENARA_DATA_CORE_EVENT_TOKEN`；如果默认端口被占用，它会自动切换到下一个可用端口并提示你。若需覆盖默认探测地址，可设置 `SCENARA_DATA_INTEGRATION_DATABASE_URL`、`SCENARA_DATA_INTEGRATION_REDIS_URL`、`SCENARA_DATA_INTEGRATION_S3_ENDPOINT_URL`、`SCENARA_DATA_INTEGRATION_S3_ACCESS_KEY_ID` 和 `SCENARA_DATA_INTEGRATION_S3_SECRET_ACCESS_KEY`。
 
 ```powershell
 python start.py --mode all
@@ -39,7 +39,7 @@ npm install
 npm run dev
 ```
 
-健康检查：`GET http://127.0.0.1:8081/health`。正式业务 API 必须先在 `scenara-contracts` 发布契约，当前未把内部领域模型声明为公共接口。
+健康检查接口：`GET http://127.0.0.1:8081/health`。正式业务 API 必须先在契约仓库 `scenara-contracts` 发布契约，当前未把内部领域模型声明为公共接口。
 
 ### 前端工作台
 
@@ -52,7 +52,7 @@ set VITE_DATA_API_BASE=http://127.0.0.1:8082
 npm run dev
 ```
 
-如果后端端口不是 `8082`，把 `VITE_DATA_API_BASE` 改成实际地址即可。前端会通过统一设计系统、主题令牌和门户规范保持与 Core 平台和模型平台一致的视觉语言。
+如果后端端口不是 `8082`，把 `VITE_DATA_API_BASE` 改成实际地址即可。前端会通过统一设计系统、主题令牌和门户规范保持与核心平台和模型平台一致的视觉语言。
 
 工作台访问业务页面前会进入登录页。本地默认用户名为 `admin`；密码默认复用后端 `SCENARA_DATA_TRUSTED_SERVICE_TOKEN`，内存开发模式未配置时为 `scenara-data-dev-token`。如需为工作台单独设置密码，可配置 `SCENARA_DATA_CONSOLE_PASSWORD`，并可通过 `SCENARA_DATA_CONSOLE_TENANT_ID`、`SCENARA_DATA_CONSOLE_PROJECT_ID` 固定登录后的租户和项目。
 
