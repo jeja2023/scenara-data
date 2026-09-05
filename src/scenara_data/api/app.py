@@ -58,7 +58,7 @@ VALIDATION_ERROR_MESSAGES = {
 }
 
 DESCRIPTION = (
-    "景枢数据平台内部 API：数据集、数据集版本、样本、标注、数据质量、"
+    "scenara data 内部 API：数据集、数据集版本、样本、标注、数据质量、"
     "数据血缘、难例与数据集构建。"
 )
 
@@ -72,7 +72,7 @@ def create_app(
     resolved_container = container or build_container(resolved_settings)
 
     application = FastAPI(
-        title="景枢数据",
+        title="scenara data",
         version=__version__,
         description=DESCRIPTION,
         openapi_tags=[

@@ -96,25 +96,25 @@ const hardSampleKindLabels: Record<HardSampleKind, string> = {
 };
 
 export function labelDatasetStatus(value: DatasetStatus): string {
-  return datasetStatusLabels[value];
+  return datasetStatusLabels[value] ?? value;
 }
 
 export function labelDatasetVersionStatus(value: DatasetVersionStatus): string {
-  return datasetVersionStatusLabels[value];
+  return datasetVersionStatusLabels[value] ?? value;
 }
 
 export function labelHardSampleImportStatus(
   value: HardSampleImportStatus,
 ): string {
-  return hardSampleImportStatusLabels[value];
+  return hardSampleImportStatusLabels[value] ?? value;
 }
 
 export function labelReadinessState(value: ReadinessState): string {
-  return value === "not_ready" ? "未就绪" : readinessStateLabels[value];
+  return value === "not_ready" ? "未就绪" : (readinessStateLabels[value] ?? value);
 }
 
 export function labelPrincipalType(value: PrincipalType): string {
-  return principalTypeLabels[value];
+  return principalTypeLabels[value] ?? value;
 }
 
 export function labelRuntimeMode(value: RuntimeMode | string | null | undefined): string {
@@ -142,17 +142,34 @@ export function labelSampleSplit(value: SampleSplit | string | null | undefined)
 }
 
 export function labelHardSampleKind(value: HardSampleKind): string {
-  return hardSampleKindLabels[value];
+  return hardSampleKindLabels[value] ?? value;
 }
 
+/**
+ * 统一东八区时间格式化，格式为 YYYY-MM-DD HH:mm:ss，不含 T
+ */
 export function formatTimestamp(value: Timestamp | undefined | null): string {
   if (value === null || value === undefined || value === "") return "-";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  return new Intl.DateTimeFormat("zh-CN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+  if (Number.isNaN(date.getTime())) {
+    return String(value).replace("T", " ").replace(/\.\d+.*$/, "");
+  }
+  const formatter = new Intl.DateTimeFormat("zh-CN", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(date);
+  const p: Record<string, string> = {};
+  for (const part of parts) {
+    p[part.type] = part.value;
+  }
+  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;
 }
 
 export function formatNumber(value: number | null | undefined): string {

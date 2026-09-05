@@ -3,21 +3,53 @@ import { Activity, Database, RefreshCw, ServerCog, ShieldCheck } from "@lucide/v
 import { computed, onMounted, ref } from "vue";
 
 import { fetchHealth, fetchReadyz, loadConnection, type HealthResponse, type ReadyzResponse } from "../api";
-import { formatTimestamp, labelHealthStatus, labelMaturity, labelPrincipalType, labelReadinessCheck, labelReadinessState, labelRuntimeMode } from "../labels";
+import {
+  formatTimestamp,
+  labelHealthStatus,
+  labelMaturity,
+  labelPrincipalType,
+  labelReadinessCheck,
+  labelReadinessState,
+  labelRuntimeMode,
+} from "../labels";
 import { useRefresh } from "../composables/useRefresh";
+import UiTabs from "../components/UiTabs.vue";
 
 const readyz = ref<ReadyzResponse | null>(null);
 const health = ref<HealthResponse | null>(null);
 const loading = ref(false);
 const error = ref("");
 
+const activeTab = ref<"readiness" | "runtime" | "session">("readiness");
 const connection = ref(loadConnection());
+
 const readinessLabel = computed(() => {
   if (readyz.value) {
     return labelReadinessState(readyz.value.status === "ready" ? "ready" : "not_ready");
   }
   return health.value ? labelReadinessState("not_ready") : labelReadinessState("offline");
 });
+
+const tabs = computed(() => [
+  {
+    id: "readiness",
+    label: "依赖与基础设施就绪",
+    icon: Activity,
+    badge: Object.keys(readyz.value?.checks ?? {}).length
+      ? `${Object.values(readyz.value?.checks ?? {}).filter(Boolean).length}/${Object.keys(readyz.value?.checks ?? {}).length}`
+      : undefined,
+  },
+  {
+    id: "runtime",
+    label: "服务运行时状态",
+    icon: ShieldCheck,
+  },
+  {
+    id: "session",
+    label: "连接与会话配置",
+    icon: ServerCog,
+  },
+]);
 
 async function refresh(): Promise<void> {
   loading.value = true;
@@ -59,80 +91,156 @@ useRefresh(refresh);
 
 <template>
   <section class="page operations-page">
+    <div class="hero-band panel" style="margin-bottom: 16px;">
+      <div>
+        <p class="eyebrow">景枢数据平台 · 运维与监控</p>
+        <h2>运维探针与服务健康度</h2>
+        <p class="hero-copy">
+          实时监测数据平台后端进程、外部数据库存储中间件就绪状态，并审计当前浏览器会话凭证。
+        </p>
+      </div>
+      <button class="button secondary" :disabled="loading" @click="refresh">
+        <RefreshCw :size="16" />{{ loading ? "正在探测..." : "执行探测" }}
+      </button>
+    </div>
+
     <p v-if="error" class="callout error">{{ error }}</p>
 
+    <!-- 顶部状态指示面板 -->
     <div class="stats-grid">
       <article class="stat-panel">
-        <span>运行模式</span>
+        <span>运行存储模式</span>
         <strong>{{ labelRuntimeMode(health?.runtime_mode) }}</strong>
-        <small>{{ health?.version || '暂无版本' }}</small>
+        <small>{{ health?.version || "版本未知" }}</small>
       </article>
       <article class="stat-panel">
-        <span>就绪状态</span>
+        <span>服务就绪状态</span>
         <strong>{{ readinessLabel }}</strong>
-        <small>{{ readyz?.timestamp ? formatTimestamp(readyz.timestamp) : '未检测' }}</small>
+        <small>{{ readyz?.timestamp ? `检查时间：${formatTimestamp(readyz.timestamp)}` : "未检测" }}</small>
       </article>
       <article class="stat-panel">
-        <span>API 地址</span>
-        <strong class="truncate">{{ connection.apiBase || '同源连接' }}</strong>
-        <small>{{ connection.tenantId }}/{{ connection.projectId }}</small>
+        <span>API 服务端点</span>
+        <strong class="truncate">{{ connection.apiBase || "同源直连服务" }}</strong>
+        <small>{{ connection.tenantId }} / {{ connection.projectId }}</small>
       </article>
       <article class="stat-panel">
-        <span>主体</span>
+        <span>操作主体标识</span>
         <strong>{{ connection.principalId }}</strong>
         <small>{{ labelPrincipalType(connection.principalType) }}</small>
       </article>
     </div>
 
-    <div class="two-column">
+    <!-- 区域切换 Tab 按钮组 -->
+    <UiTabs v-model="activeTab" :tabs="tabs" />
+
+    <!-- Tab 1: 依赖与基础设施就绪 -->
+    <div v-if="activeTab === 'readiness'" class="two-column">
       <section class="panel">
         <div class="panel-header">
-          <h3><Activity :size="18" /> 依赖就绪</h3>
-          <button class="button secondary" @click="refresh"><RefreshCw :size="16" />刷新</button>
+          <h3><Activity :size="18" /> 核心依赖就绪探测清单</h3>
+          <span class="badge" :class="readyz?.status === 'ready' ? 'active' : 'paused'">
+            {{ labelReadinessState(readyz?.status === 'ready' ? 'ready' : (readyz ? 'not_ready' : 'offline')) }}
+          </span>
         </div>
         <div class="panel-body checklist">
           <div v-for="[key, ok] in Object.entries(readyz?.checks ?? {})" :key="key" class="check-row">
             <span>{{ labelReadinessCheck(key) }}</span>
-            <strong :class="ok ? 'ok' : 'warn'">{{ ok ? '通过' : '失败' }}</strong>
+            <span class="badge" :class="ok ? 'active' : 'draft'">
+              {{ ok ? "探测正常 (通过)" : "未就绪 (失败)" }}
+            </span>
           </div>
-          <p class="muted tiny">{{ readyz?.timestamp ? `最近检查：${formatTimestamp(readyz.timestamp)}` : '点击刷新执行探测' }}</p>
+          <p class="muted tiny" style="margin: 8px 0 0;">
+            {{ readyz?.timestamp ? `最近检查时间 (UTC+8)：${formatTimestamp(readyz.timestamp)}` : "点击右上角按钮执行探测" }}
+          </p>
         </div>
       </section>
 
       <section class="panel">
         <div class="panel-header">
-          <h3><Database :size="18" /> 安全与存储</h3>
+          <h3><Database :size="18" /> 安全与存储基础设施</h3>
+          <span class="muted tiny">拓扑配置</span>
         </div>
         <div class="panel-body checklist">
-          <div class="check-row"><span>数据源</span><strong>PostgreSQL</strong></div>
-          <div class="check-row"><span>缓存与锁</span><strong>Redis</strong></div>
-          <div class="check-row"><span>对象存储</span><strong>MinIO / S3</strong></div>
-          <div class="check-row"><span>事件回传</span><strong>核心事件接收端点</strong></div>
-          <p class="muted tiny">当前只展示本地开发和治理信息，不包含业务数据。</p>
+          <div class="check-row">
+            <span>持久化业务数据库 (Repository)</span>
+            <strong class="mono">PostgreSQL</strong>
+          </div>
+          <div class="check-row">
+            <span>分布式缓存与排队锁 (Lock & Cache)</span>
+            <strong class="mono">Redis</strong>
+          </div>
+          <div class="check-row">
+            <span>对象存储事实端点 (Object Storage)</span>
+            <strong class="mono">MinIO / S3</strong>
+          </div>
+          <div class="check-row">
+            <span>领域事件投递发件箱 (Domain Outbox)</span>
+            <strong class="mono">Core Event Endpoint</strong>
+          </div>
+          <p class="muted tiny" style="margin: 8px 0 0;">
+            展示服务层中间件治理拓扑，所有敏感密码与密钥均由服务端环境变量严格隔离。
+          </p>
         </div>
       </section>
     </div>
 
-    <section class="panel">
+    <!-- Tab 2: 服务运行时状态 -->
+    <section v-if="activeTab === 'runtime'" class="panel">
       <div class="panel-header">
-        <h3><ShieldCheck :size="18" /> 运行信息</h3>
+        <h3><ShieldCheck :size="18" /> 服务运行时规范与健康指标</h3>
       </div>
       <div class="panel-body kv-grid">
-        <div><span>服务</span><strong>{{ health?.service || '景枢数据' }}</strong></div>
-        <div><span>成熟度</span><strong>{{ labelMaturity(health?.maturity) }}</strong></div>
-        <div><span>后端状态</span><strong>{{ labelHealthStatus(health?.status) }}</strong></div>
-        <div><span>检查结果</span><strong>{{ Object.values(readyz?.checks ?? {}).every(Boolean) ? '全部通过' : '存在失败' }}</strong></div>
+        <div>
+          <span>服务名称</span>
+          <strong class="mono">{{ health?.service || "scenara data" }}</strong>
+        </div>
+        <div>
+          <span>规范成熟度</span>
+          <strong>{{ labelMaturity(health?.maturity) }}</strong>
+        </div>
+        <div>
+          <span>后端进程健康状态</span>
+          <span class="badge" :class="health?.status === 'healthy' ? 'active' : 'draft'">
+            {{ labelHealthStatus(health?.status) }}
+          </span>
+        </div>
+        <div>
+          <span>基础设施综合就绪</span>
+          <span class="badge" :class="Object.values(readyz?.checks ?? {}).every(Boolean) ? 'active' : 'paused'">
+            {{ Object.values(readyz?.checks ?? {}).every(Boolean) ? "全部通过" : "存在未通过项" }}
+          </span>
+        </div>
       </div>
     </section>
 
-    <section class="panel">
+    <!-- Tab 3: 连接与会话配置 -->
+    <section v-if="activeTab === 'session'" class="panel">
       <div class="panel-header">
-        <h3><ServerCog :size="18" /> 配置摘要</h3>
+        <h3><ServerCog :size="18" /> 当前会话连接与访问凭证摘要</h3>
       </div>
       <div class="panel-body">
-        <p class="muted">连接目标：<span class="mono">{{ connection.apiBase || '同源连接' }}</span></p>
-        <p class="muted">权限范围：<span class="mono truncate">{{ connection.scopes }}</span></p>
-        <p class="muted">产品授权：<span class="mono">{{ connection.entitlements }}</span></p>
+        <dl class="kv-list">
+          <div>
+            <dt>服务连接目标 (API Endpoint)</dt>
+            <dd class="mono">{{ connection.apiBase || "同源直连 (同端口反向代理)" }}</dd>
+          </div>
+          <div>
+            <dt>会话归属组织与项目</dt>
+            <dd class="mono">{{ connection.tenantId }} / {{ connection.projectId }}</dd>
+          </div>
+          <div class="span-2">
+            <dt>会话权限范围 (Permission Scopes)</dt>
+            <dd class="mono tiny" style="word-break: break-all;">
+              {{ connection.scopes || "暂无权限范围声明" }}
+            </dd>
+          </div>
+          <div class="span-2">
+            <dt>已授权产品权益 (Product Entitlements)</dt>
+            <dd class="mono tiny">
+              {{ connection.entitlements || "暂无产品权益声明" }}
+            </dd>
+          </div>
+        </dl>
       </div>
     </section>
   </section>

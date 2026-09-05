@@ -20,7 +20,7 @@ DEFAULT_FRONTEND_PORT = 5173
 
 
 def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="启动景枢数据本地开发服务")
+    parser = argparse.ArgumentParser(description="启动 scenara data 本地开发服务")
     parser.add_argument("--mode", choices=("all", "backend", "frontend"), default="all")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--backend-port", type=int, default=DEFAULT_BACKEND_PORT)

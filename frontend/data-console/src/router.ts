@@ -11,7 +11,7 @@ import {
 
 import { isSignedIn } from "./auth";
 
-const APP_TITLE = "景枢数据";
+const APP_TITLE = "景枢数据平台";
 
 const routes = [
   {
@@ -98,7 +98,11 @@ const routes = [
       hideFromNavigation: true,
     },
   },
-  { path: "/:pathMatch(.*)*", redirect: "/" },
+  {
+    path: "/:pathMatch(.*)*",
+    redirect: "/",
+    meta: { hideFromNavigation: true },
+  },
 ] as const;
 
 const router = createRouter({

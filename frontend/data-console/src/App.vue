@@ -22,6 +22,8 @@ import {
 import { REFRESH_EVENT } from "./composables/useRefresh";
 import { labelPrincipalType, labelReadinessState } from "./labels";
 import { routes } from "./router";
+import brandMark from "./assets/scenara-mark.svg";
+import UiTooltip from "./components/UiTooltip.vue";
 
 type NavRoute = {
   path: string;
@@ -50,7 +52,7 @@ let refreshTimer: number | null = null;
 const navSections = computed(() => {
   const sections = new Map<string, NavRoute[]>();
   for (const item of routes as unknown as NavRoute[]) {
-    if (item.meta?.hideFromNavigation) continue;
+    if (item.meta?.hideFromNavigation || !item.meta?.title) continue;
     const section = String(item.meta?.section ?? "其他");
     sections.set(section, [...(sections.get(section) ?? []), item]);
   }
@@ -61,7 +63,7 @@ const routeMeta = computed(
   () => route.meta as { title?: string; description?: string; platform?: string },
 );
 
-const pageTitle = computed(() => String(routeMeta.value.title ?? "景枢数据"));
+const pageTitle = computed(() => String(routeMeta.value.title ?? "scenara data"));
 const pageDescription = computed(() => String(routeMeta.value.description ?? ""));
 
 const platform = computed(() => String(routeMeta.value.platform ?? "data"));
@@ -182,16 +184,14 @@ watch(
       </button>
 
       <div class="brand-lockup">
-        <div class="brand-mark">数</div>
+        <img class="brand-mark" :src="brandMark" alt="" />
         <div>
-          <strong>景枢数据</strong>
+          <strong>scenara data</strong>
           <span>{{ connection.apiBase || '本地连接' }}</span>
         </div>
       </div>
 
       <div class="topbar-context">
-        <span class="context-product">统一门户 · 独立前端</span>
-        <span class="context-separator"></span>
         <h1 class="context-title">{{ pageTitle }}</h1>
         <span v-if="pageDescription" class="context-description">{{ pageDescription }}</span>
       </div>
@@ -214,9 +214,9 @@ watch(
 
     <aside class="sidebar" :class="{ open: navOpen }">
       <div class="sidebar-brand">
-        <div class="brand-mark large">数</div>
+        <img class="brand-mark large" :src="brandMark" alt="" />
         <div>
-          <strong>景枢数据</strong>
+          <strong>scenara data</strong>
           <span>{{ connection.tenantId }}/{{ connection.projectId }}</span>
         </div>
         <button class="icon-button sidebar-close" title="关闭导航" @click="closeNav">
@@ -240,7 +240,7 @@ watch(
       </nav>
 
       <div class="sidebar-footer">
-        <span>v0.1.8</span><i></i><span>{{ readyMessage }}</span>
+        <span>v0.1.9</span><i></i><span>{{ readyMessage }}</span>
       </div>
     </aside>
 
@@ -310,5 +310,7 @@ watch(
         </div>
       </form>
     </dialog>
+
+    <UiTooltip />
   </div>
 </template>

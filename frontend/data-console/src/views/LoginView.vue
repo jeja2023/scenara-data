@@ -70,32 +70,32 @@ onMounted(() => passwordInput.value?.focus());
 
 <template>
   <main class="login-page">
-    <section class="login-brand-pane" aria-label="Scenara 景枢">
+    <section class="login-brand-pane" aria-label="scenara data">
       <div class="login-brand-lockup">
         <img :src="brandMark" alt="" />
-        <div><strong>Scenara</strong><span>景枢数据</span></div>
+        <div><strong>scenara data</strong><span>景枢数据平台</span></div>
       </div>
       <div class="login-brand-message">
-        <p>数据管理工作台</p>
+        <p>视觉 AI 中枢平台</p>
         <h1>连接视觉<br />理解世界</h1>
       </div>
       <div class="login-brand-footer">
         <ShieldCheck :size="17" />
-        <span>本地工作台会话</span>
+        <span>统一身份与访问控制</span>
       </div>
     </section>
 
     <section class="login-form-pane">
       <div class="login-mobile-brand">
         <img :src="brandMark" alt="" />
-        <div><strong>Scenara</strong><span>景枢数据</span></div>
+        <div><strong>scenara data</strong><span>景枢数据平台</span></div>
       </div>
 
       <form class="login-form" aria-label="登录" @submit.prevent="submit">
         <header>
-          <p>Scenara Data Console</p>
-          <h2>登录数据工作台</h2>
-          <span>使用用户名和密码进入当前数据平台。</span>
+          <p>scenara data</p>
+          <h2>登录数据平台</h2>
+          <span>使用您的景枢数据平台 (scenara data) 账号登录。</span>
         </header>
 
         <div class="login-field">
@@ -146,7 +146,7 @@ onMounted(() => passwordInput.value?.focus());
         </button>
       </form>
 
-      <footer class="login-form-footer">景枢数据 · v0.1.8</footer>
+      <footer class="login-form-footer">scenara data · 景枢数据平台</footer>
     </section>
   </main>
 </template>
