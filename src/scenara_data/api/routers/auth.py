@@ -6,7 +6,11 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+import threading
+import time
+from collections import defaultdict, deque
+
+from fastapi import APIRouter, HTTPException, Request
 
 from scenara_data.api.schemas import LoginRequest, LoginResponse, LoginSessionInfo
 from scenara_data.api.security import issue_console_session, verify_console_login
@@ -14,12 +18,62 @@ from scenara_data.api.security import issue_console_session, verify_console_logi
 router = APIRouter(tags=["认证"])
 
 
+class LoginAttemptLimiter:
+    """进程内登录限流；生产网关仍必须提供跨副本的统一限流。"""
+
+    def __init__(self, *, max_attempts: int, window_seconds: int) -> None:
+        self._max_attempts = max_attempts
+        self._window_seconds = window_seconds
+        self._attempts: dict[str, deque[float]] = defaultdict(deque)
+        self._lock = threading.Lock()
+
+    def allow(self, key: str) -> bool:
+        now = time.monotonic()
+        with self._lock:
+            attempts = self._attempts[key]
+            while attempts and now - attempts[0] >= self._window_seconds:
+                attempts.popleft()
+            return len(attempts) < self._max_attempts
+
+    def record_failure(self, key: str) -> None:
+        with self._lock:
+            self._attempts[key].append(time.monotonic())
+
+    def clear(self, key: str) -> None:
+        with self._lock:
+            self._attempts.pop(key, None)
+
+
+def _limiter(request: Request) -> LoginAttemptLimiter:
+    limiter = getattr(request.app.state, "login_attempt_limiter", None)
+    if limiter is None:
+        settings = request.app.state.settings
+        limiter = LoginAttemptLimiter(
+            max_attempts=settings.console_login_max_attempts,
+            window_seconds=settings.console_login_window_seconds,
+        )
+        request.app.state.login_attempt_limiter = limiter
+    return limiter
+
+
 @router.post("/api/v1/auth/login", response_model=LoginResponse, summary="数据工作台登录")
 @router.post("/internal/v1/auth/login", response_model=LoginResponse, include_in_schema=False)
 def login(body: LoginRequest, request: Request) -> LoginResponse:
     settings = request.app.state.settings
+    if not settings.console_login_enabled:
+        raise HTTPException(status_code=404)
     username = body.username.strip()
-    verify_console_login(settings, username, body.password)
+    source = request.client.host if request.client else "unknown"
+    key = f"{source}:{username}"
+    limiter = _limiter(request)
+    if not limiter.allow(key):
+        raise HTTPException(status_code=429)
+    try:
+        verify_console_login(settings, username, body.password)
+    except Exception:
+        limiter.record_failure(key)
+        raise
+    limiter.clear(key)
     session = issue_console_session(settings, username)
     return LoginResponse(
         token=session.token,

@@ -10,7 +10,12 @@ from dataclasses import dataclass
 
 from scenara_data.application.annotations import AnnotationService
 from scenara_data.application.builder import DatasetBuilderService
-from scenara_data.application.errors import ConflictError, InputValidationError, ResourceNotFoundError
+from scenara_data.application.errors import (
+    ApplicationError,
+    ConflictError,
+    InputValidationError,
+    ResourceNotFoundError,
+)
 from scenara_data.application.samples import SampleService
 from scenara_data.application.support import ApplicationService, Clock, new_id, transactional, utc_now
 from scenara_data.domain.models import (
@@ -82,10 +87,23 @@ class HardSampleService(ApplicationService):
                     "同一难例清单标识已用于不同内容",
                     details={"manifest_id": manifest.manifest_id, "import_id": existing.import_id},
                 )
-            return IntakeResult(
-                hard_sample_import=existing, samples=(), dataset_version_id=None, replayed=True
-            )
-        record = self._open_import(manifest, context)
+            if existing.status == JobStatus.SUCCEEDED:
+                return IntakeResult(
+                    hard_sample_import=existing, samples=(), dataset_version_id=None, replayed=True
+                )
+            if existing.status in {JobStatus.QUEUED, JobStatus.RUNNING}:
+                raise ConflictError(
+                    "同一难例清单正在处理中",
+                    details={"manifest_id": manifest.manifest_id, "import_id": existing.import_id},
+                )
+            if existing.status != JobStatus.FAILED:
+                raise ConflictError(
+                    "同一难例清单处于不可重试终态",
+                    details={"manifest_id": manifest.manifest_id, "import_id": existing.import_id},
+                )
+            record = self._retry_failed_import(existing, context)
+        else:
+            record = self._open_import(manifest, context)
         rejections = self._reject_reasons(manifest)
         if rejections:
             self._close_failed(record, context, rejections=rejections)
@@ -100,14 +118,26 @@ class HardSampleService(ApplicationService):
                     ],
                 },
             )
-        return self._accept(
-            record,
-            manifest,
-            context,
-            annotation_schema_id=annotation_schema_id,
-            build_version=build_version,
-            publish=publish,
-        )
+        try:
+            return self._accept(
+                record,
+                manifest,
+                context,
+                annotation_schema_id=annotation_schema_id,
+                build_version=build_version,
+                publish=publish,
+            )
+        except ApplicationError as exc:
+            self._close_processing_failure(record, context, code=exc.code, message=exc.message)
+            raise
+        except (KeyError, ValueError) as exc:
+            self._close_processing_failure(
+                record, context, code="HARD_SAMPLE_PROCESSING_FAILED", message=str(exc)
+            )
+            raise ConflictError(
+                "难例清单物化失败",
+                details={"import_id": record.import_id, "reason": str(exc)[:500]},
+            ) from exc
 
     def get_import(self, import_id: str, context: RequestContext) -> HardSampleImport:
         self._require(context, "data.dataset.read")
@@ -138,6 +168,27 @@ class HardSampleService(ApplicationService):
                 "难例清单已在处理中", details={"manifest_id": manifest.manifest_id}
             ) from exc
         return record
+
+    @transactional
+    def _retry_failed_import(self, record: HardSampleImport, context: RequestContext) -> HardSampleImport:
+        """仅允许相同清单重试终态失败记录，绝不把失败伪装成已成功重放。"""
+        retrying = record.model_copy(
+            update={
+                "status": JobStatus.QUEUED,
+                "accepted_count": 0,
+                "rejected_count": 0,
+                "skipped_count": 0,
+                "sample_ids": (),
+                "annotation_task_ids": (),
+                "completed_at": None,
+                "error_code": None,
+                "error_message": None,
+            }
+        )
+        self._hard_samples.update_hard_sample_import(
+            retrying, context.organization_id, context.project_id
+        )
+        return retrying
 
     @transactional
     def _close_failed(
@@ -178,6 +229,49 @@ class HardSampleService(ApplicationService):
                 "import_id": failed.import_id,
                 "manifest_id": failed.manifest_id,
                 "rejected_count": failed.rejected_count,
+                "error_code": failed.error_code,
+            },
+        )
+        return failed
+
+    @transactional
+    def _close_processing_failure(
+        self,
+        record: HardSampleImport,
+        context: RequestContext,
+        *,
+        code: str,
+        message: str,
+    ) -> HardSampleImport:
+        """记录处理失败，使相同清单可在依赖修复后安全重试。"""
+        occurred_at = self._clock()
+        failed = record.model_copy(
+            update={
+                "status": JobStatus.FAILED,
+                "completed_at": occurred_at,
+                "error_code": code[:128],
+                "error_message": message[:1000],
+            }
+        )
+        self._hard_samples.update_hard_sample_import(
+            failed, context.organization_id, context.project_id
+        )
+        self._record_audit(
+            "hard_sample.import.failed",
+            "hard_sample_import",
+            record.import_id,
+            context,
+            before=record,
+            after=failed,
+            result="failed",
+        )
+        self._emit(
+            "hard_sample.import.failed",
+            context,
+            occurred_at,
+            {
+                "import_id": failed.import_id,
+                "manifest_id": failed.manifest_id,
                 "error_code": failed.error_code,
             },
         )

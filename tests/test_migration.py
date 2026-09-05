@@ -4,8 +4,11 @@ import hashlib
 import json
 from datetime import UTC, datetime
 
+import pytest
+
 from scenara_data.adapters.migration_package import InMemoryMigrationPackage
 from scenara_data.api.container import build_container
+from scenara_data.application.errors import InputValidationError
 from scenara_data.config import Settings
 from scenara_data.domain.models import JobStatus
 from scenara_data.ports.interfaces import RequestContext
@@ -58,3 +61,14 @@ def test_invalid_migration_records_produce_a_persisted_idempotent_failure_report
     assert first.completed_at is not None
     assert first.failures[0].startswith("迁移包校验失败")
     assert replay == first
+
+
+def test_duplicate_or_non_utf8_checksums_are_rejected_before_import() -> None:
+    migrations = build_container(Settings()).migrations
+    duplicate = InMemoryMigrationPackage({"checksums.txt": b"a" * 64 + b"  datasets.jsonl\n" + b"a" * 64 + b"  datasets.jsonl\n"})
+    invalid_utf8 = InMemoryMigrationPackage({"checksums.txt": b"\xff"})
+
+    with pytest.raises(InputValidationError, match="重复声明"):
+        migrations._parse_checksums(duplicate)  # noqa: SLF001 - 验证迁移输入边界
+    with pytest.raises(InputValidationError, match="UTF-8"):
+        migrations._parse_checksums(invalid_utf8)  # noqa: SLF001 - 验证迁移输入边界

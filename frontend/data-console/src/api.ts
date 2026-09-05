@@ -51,7 +51,8 @@ export interface LoginResponse {
 
 const STORAGE_KEY = "scenara.data.console.connection.v1";
 const SESSION_TOKEN_KEY = "scenara.data.console.token.session.v1";
-const PERSISTENT_TOKEN_KEY = "scenara.data.console.token.local.v1";
+// 仅用于清除旧版本遗留的持久化令牌；新版本绝不写入 localStorage。
+const LEGACY_PERSISTENT_TOKEN_KEY = "scenara.data.console.token.local.v1";
 const AUTH_EXPIRED_EVENT = "scenara:data-auth-expired";
 const API_PAGE_LIMIT = 100;
 
@@ -86,11 +87,7 @@ export function loadConnection(): ConnectionSettings {
     return {
       ...defaults,
       ...stored,
-      token:
-        sessionStorage.getItem(SESSION_TOKEN_KEY) ??
-        localStorage.getItem(PERSISTENT_TOKEN_KEY) ??
-        stored.token ??
-        "",
+      token: sessionStorage.getItem(SESSION_TOKEN_KEY) ?? "",
     };
   } catch {
     return { ...defaults };
@@ -99,25 +96,23 @@ export function loadConnection(): ConnectionSettings {
 
 export function saveConnection(
   value: ConnectionSettings,
-  options: { persistAuth?: boolean } = {},
+  _options: { persistAuth?: boolean } = {},
 ): void {
   const { token, ...context } = value;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(context));
   sessionStorage.removeItem(SESSION_TOKEN_KEY);
-  localStorage.removeItem(PERSISTENT_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_PERSISTENT_TOKEN_KEY);
   if (!token) return;
-  const persistAuth = options.persistAuth ?? connectionTokenIsPersistent();
-  const storage = persistAuth ? localStorage : sessionStorage;
-  storage.setItem(persistAuth ? PERSISTENT_TOKEN_KEY : SESSION_TOKEN_KEY, token);
+  sessionStorage.setItem(SESSION_TOKEN_KEY, token);
 }
 
 export function connectionTokenIsPersistent(): boolean {
-  return localStorage.getItem(PERSISTENT_TOKEN_KEY) !== null;
+  return false;
 }
 
 export function clearConnectionToken(): void {
   sessionStorage.removeItem(SESSION_TOKEN_KEY);
-  localStorage.removeItem(PERSISTENT_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_PERSISTENT_TOKEN_KEY);
   try {
     const stored = JSON.parse(
       localStorage.getItem(STORAGE_KEY) ?? "{}",

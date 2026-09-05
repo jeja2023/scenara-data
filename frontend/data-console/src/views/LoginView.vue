@@ -15,7 +15,6 @@ const form = reactive({
   password: "",
   apiBase: savedConnection.apiBase,
 });
-const remember = ref(false);
 const revealPassword = ref(false);
 const submitting = ref(false);
 const errorMessage = ref("");
@@ -51,7 +50,7 @@ async function submit(): Promise<void> {
         scopes: session.session.permission_scopes.join(","),
         entitlements: session.session.product_entitlements.join(","),
       },
-      remember.value,
+      false,
       session.expires_at,
     );
     form.password = "";
@@ -135,10 +134,7 @@ onMounted(() => passwordInput.value?.focus());
           </div>
         </details>
 
-        <label class="login-remember">
-          <input v-model="remember" type="checkbox" />
-          <span>保持登录</span>
-        </label>
+        <p class="muted tiny">为保护访问令牌，登录状态仅在当前浏览器会话中保留。</p>
 
         <p v-if="errorMessage" class="login-error" role="alert">
           {{ errorMessage }}
@@ -150,7 +146,7 @@ onMounted(() => passwordInput.value?.focus());
         </button>
       </form>
 
-      <footer class="login-form-footer">景枢数据 · v0.1.6</footer>
+      <footer class="login-form-footer">景枢数据 · v0.1.8</footer>
     </section>
   </main>
 </template>

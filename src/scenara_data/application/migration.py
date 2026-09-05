@@ -343,7 +343,11 @@ class MigrationImportService(ApplicationService):
         if not package.exists(CHECKSUMS_FILE):
             return {}
         declared: dict[str, str] = {}
-        for line in package.read(CHECKSUMS_FILE).decode("utf-8").splitlines():
+        try:
+            lines = package.read(CHECKSUMS_FILE).decode("utf-8").splitlines()
+        except UnicodeDecodeError as exc:
+            raise InputValidationError("checksums.txt 必须使用 UTF-8 编码") from exc
+        for line in lines:
             entry = line.strip()
             if not entry or entry.startswith("#"):
                 continue
@@ -353,6 +357,12 @@ class MigrationImportService(ApplicationService):
             digest, name = parts[0].lower(), parts[1].lstrip("*")
             if len(digest) != 64:
                 raise InputValidationError("checksums.txt 摘要必须是 64 位小写十六进制")
+            if any(character not in "0123456789abcdef" for character in digest):
+                raise InputValidationError("checksums.txt 摘要必须是小写十六进制")
+            if name in declared:
+                raise InputValidationError(
+                    "checksums.txt 不能重复声明同一个文件", details={"file": name}
+                )
             declared[name] = digest
         return declared
 
@@ -618,8 +628,12 @@ class MigrationImportService(ApplicationService):
                 tally.imported += 1
                 continue
             try:
+                # 版本成员在数据库中只能在 building 状态登记。导入期间先用一个
+                # 不带发布字段的 building 过渡记录写入成员，再在同一事务恢复来源
+                # 的最终状态；这不会放宽已发布版本的常规不可变性规则。
+                stored = _version_for_membership_restore(value) if record.sample_ids else value
                 self._datasets.add_dataset_version(
-                    value, context.organization_id, context.project_id
+                    stored, context.organization_id, context.project_id
                 )
                 for sample_id in record.sample_ids:
                     self._samples.restore_sample_to_version(
@@ -627,6 +641,10 @@ class MigrationImportService(ApplicationService):
                         sample_id,
                         context.organization_id,
                         context.project_id,
+                    )
+                if stored != value:
+                    self._datasets.update_dataset_version(
+                        value, context.organization_id, context.project_id
                     )
                 tally.imported += 1
             except (ValueError, KeyError) as exc:
@@ -850,7 +868,13 @@ class MigrationImportService(ApplicationService):
     def _iter_lines(package: MigrationPackageSource, name: str) -> Iterator[str]:
         if not package.exists(name):
             return
-        for line in package.read(name).decode("utf-8").splitlines():
+        try:
+            lines = package.read(name).decode("utf-8").splitlines()
+        except UnicodeDecodeError as exc:
+            raise InputValidationError(
+                "迁移包数据文件必须使用 UTF-8 编码", details={"file": name}
+            ) from exc
+        for line in lines:
             if line.strip():
                 yield line
 
@@ -871,4 +895,19 @@ def _same_version(existing: DatasetVersion, incoming: DatasetVersion) -> bool:
         and existing.status == incoming.status
         and existing.manifest_sha256 == incoming.manifest_sha256
         and existing.created_at == incoming.created_at
+    )
+
+
+def _version_for_membership_restore(value: DatasetVersion) -> DatasetVersion:
+    """构造仅供同一事务恢复成员关系的 building 过渡记录。"""
+    return value.model_copy(
+        update={
+            "status": DatasetVersionStatus.BUILDING,
+            "manifest_ref": None,
+            "published_at": None,
+            "archived_at": None,
+            "manifest_sha256": None,
+            "sample_count": None,
+            "failure_reason": None,
+        }
     )

@@ -19,12 +19,14 @@ PRECONDITION_CODES = frozenset({"PreconditionFailed", "412"})
 class S3ObjectStorage:
     def __init__(self, settings: Settings, *, client: Any | None = None) -> None:
         self._default_bucket = settings.dataset_bucket
+        self._require_object_versioning = settings.require_object_versioning
         self._known_buckets = {
             settings.dataset_bucket,
             settings.manifest_bucket,
             settings.import_bucket,
             settings.export_bucket,
             settings.artifact_bucket,
+            settings.backup_bucket,
         }
         if client is not None:
             self._client = client
@@ -49,6 +51,10 @@ class S3ObjectStorage:
         for bucket in sorted(self._known_buckets):
             try:
                 self._client.head_bucket(Bucket=bucket)
+                if self._require_object_versioning:
+                    versioning = self._client.get_bucket_versioning(Bucket=bucket)
+                    if versioning.get("Status") != "Enabled":
+                        return False
             except Exception:
                 return False
         return True
@@ -61,6 +67,8 @@ class S3ObjectStorage:
         existing = self._head_reference(target, key)
         if existing is not None:
             if existing.checksum == checksum and existing.size_bytes == len(content):
+                if self._require_object_versioning and not existing.version.startswith("version:"):
+                    raise ValueError("生产对象存储必须启用版本控制")
                 self.read_verified(existing)
                 return existing
             raise ValueError("不可变对象已存在且内容不同")
@@ -80,10 +88,13 @@ class S3ObjectStorage:
                     return existing
                 raise ValueError("不可变对象已存在且内容不同") from exc
             raise
+        version = _version_of(response)
+        if self._require_object_versioning and not response.get("VersionId"):
+            raise ValueError("生产对象存储必须为已发布对象返回 VersionId")
         return ObjectReference(
             bucket=target,
             key=key,
-            version=_version_of(response),
+            version=version,
             checksum=checksum,
             size_bytes=len(content),
             content_type=content_type,

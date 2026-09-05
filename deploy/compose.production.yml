@@ -1,0 +1,111 @@
+# 生产编排基线：仅运行无状态服务，PostgreSQL、Redis、S3、TLS 与网关由受管基础设施提供。
+# 所有镜像必须是已批准的不可变 digest（例如 registry/scenara-data@sha256:<digest>）；
+# 所有 secret 必须由 Docker/Kubernetes 密钥挂载提供。
+services:
+  data-migrate:
+    image: ${SCENARA_DATA_IMAGE:?必须设置带 digest 的 SCENARA_DATA_IMAGE}
+    command: ["python", "scripts/migrate.py"]
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+    environment: &runtime-environment
+      SCENARA_DATA_DEPLOYMENT_PROFILE: production
+      SCENARA_DATA_RUNTIME_MODE: postgres
+      SCENARA_DATA_DATABASE_URL_FILE: /run/secrets/data_database_url
+      SCENARA_DATA_REDIS_URL: ${SCENARA_DATA_REDIS_URL:?必须设置 TLS Redis 地址}
+      SCENARA_DATA_S3_ENDPOINT_URL: ${SCENARA_DATA_S3_ENDPOINT_URL:?必须设置 HTTPS S3 地址}
+      SCENARA_DATA_S3_REGION: ${SCENARA_DATA_S3_REGION:?必须设置 S3 区域}
+      SCENARA_DATA_S3_ACCESS_KEY_ID_FILE: /run/secrets/data_s3_access_key_id
+      SCENARA_DATA_S3_SECRET_ACCESS_KEY_FILE: /run/secrets/data_s3_secret_access_key
+      SCENARA_DATA_TRUSTED_SERVICE_TOKEN_FILE: /run/secrets/data_service_token
+      SCENARA_DATA_REQUEST_CONTEXT_SIGNING_KEY_FILE: /run/secrets/data_context_signing_key
+      SCENARA_DATA_CORE_EVENT_ENDPOINT: ${SCENARA_DATA_CORE_EVENT_ENDPOINT:?必须设置 HTTPS Core 事件端点}
+      SCENARA_DATA_CORE_EVENT_TOKEN_FILE: /run/secrets/data_core_event_token
+      SCENARA_DATA_CORS_ALLOW_ORIGINS: ${SCENARA_DATA_CORS_ALLOW_ORIGINS:?必须设置 HTTPS 门户来源}
+      SCENARA_DATA_CONSOLE_LOGIN_ENABLED: "false"
+    secrets: &runtime-secrets
+      - data_database_url
+      - data_s3_access_key_id
+      - data_s3_secret_access_key
+      - data_service_token
+      - data_context_signing_key
+      - data_core_event_token
+    networks: [platform]
+    restart: "no"
+
+  data-api:
+    image: ${SCENARA_DATA_IMAGE:?必须设置带 digest 的 SCENARA_DATA_IMAGE}
+    command:
+      ["uvicorn", "scenara_data.api.app:app", "--host", "0.0.0.0", "--port", "8081", "--timeout-graceful-shutdown", "30"]
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+    init: true
+    stop_grace_period: 35s
+    restart: unless-stopped
+    environment: *runtime-environment
+    secrets: *runtime-secrets
+    networks: [platform]
+    depends_on:
+      data-migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/readyz', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+  data-outbox:
+    image: ${SCENARA_DATA_IMAGE:?必须设置带 digest 的 SCENARA_DATA_IMAGE}
+    command: ["python", "scripts/run_outbox.py"]
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m"]
+    init: true
+    stop_grace_period: 35s
+    restart: unless-stopped
+    environment: *runtime-environment
+    secrets: *runtime-secrets
+    networks: [platform]
+    depends_on:
+      data-migrate:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+
+secrets:
+  data_database_url:
+    external: true
+  data_s3_access_key_id:
+    external: true
+  data_s3_secret_access_key:
+    external: true
+  data_service_token:
+    external: true
+  data_context_signing_key:
+    external: true
+  data_core_event_token:
+    external: true
+
+networks:
+  platform:
+    external: true
+    name: ${SCENARA_PLATFORM_NETWORK:?必须设置受控平台网络名称}

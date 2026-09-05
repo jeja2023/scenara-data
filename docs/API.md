@@ -1,6 +1,6 @@
 # API 接口文档
 
-当前已实现（implemented）版本为 `0.1.6`，提供内部业务 API、运维探针和独立工作台本地登录入口。公共业务 `/api/v1/` 仍由核心平台（Core）网关代理，数据平台业务接口只暴露内部路径 `/internal/v1/`。
+当前已实现（implemented）版本为 `0.1.8`，提供内部业务 API、运维探针和独立工作台本地登录入口。公共业务 `/api/v1/` 仍由核心平台（Core）网关代理，数据平台业务接口只暴露内部路径 `/internal/v1/`。
 
 | 请求方法 | 接口路径 | 认证方式 | 用途说明 |
 | --- | --- | --- | --- |
@@ -9,7 +9,9 @@
 | GET | `/readyz` | 无 | PostgreSQL 与对象存储真实就绪状态检查 |
 | GET | `/metrics` | 无 | Prometheus 监控指标采集 |
 
-`/api/v1/auth/login` 仅服务于独立前端直连场景，不替代核心平台的统一身份与访问管理（Core IAM）。用户名默认来自 `SCENARA_DATA_CONSOLE_USERNAME`，密码默认复用 `SCENARA_DATA_TRUSTED_SERVICE_TOKEN`，也可用 `SCENARA_DATA_CONSOLE_PASSWORD` 单独覆盖。登录令牌访问 `/internal/v1/` 时由后端恢复租户、项目、主体、权限范围和产品授权；服务间调用仍可继续使用原有 Bearer 令牌和透传请求头。
+`/api/v1/auth/login` 仅服务于独立前端直连开发场景，不替代核心平台的统一身份与访问管理（Core IAM）。生产配置默认禁用该入口（`SCENARA_DATA_CONSOLE_LOGIN_ENABLED=false`），改由 Core 网关提供身份事实。登录令牌访问 `/internal/v1/` 时由后端恢复租户、项目、主体、权限范围和产品授权。
+
+生产环境的服务间调用除 Bearer 服务凭据外，还必须携带 Core 使用独立密钥签发的短时身份上下文：`X-Scenara-Context-Timestamp`（Unix 秒）和 `X-Scenara-Context-Signature`。签名内容是以 UTF-8 编码、`sort_keys=true`、无空格 JSON 序列化的对象，字段为 `entitlements`、`method`、`path`、`principal_id`、`principal_type`、`project_id`、`request_id`、`scopes`、`tenant_id`、`timestamp`、`trace_id`；数组去重排序后写入。签名算法为 `HMAC-SHA256` 十六进制小写输出。默认有效期为 300 秒；服务端拒绝过期或篡改的上下文，避免凭据持有者伪造租户、项目、主体和权限范围。
 
 所有 `/internal/v1/` 业务写接口都要求核心平台透传的身份上下文和幂等键（`Idempotency-Key`）。核心路径包括：
 

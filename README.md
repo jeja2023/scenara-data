@@ -2,12 +2,12 @@
 
 `scenara-data` 是景枢数据平台责任仓库，负责数据资产、样本、数据集、不可变数据集版本、标注、数据质量、数据血缘、难例和数据集构建。它不负责模型训练、生产推理、共享身份与访问管理、统一控制台门户或 API 网关。
 
-- 当前版本：`0.1.6`
+- 当前版本：`0.1.8`
 - 当前成熟度：`implemented`
 - 责任团队：景枢数据
 - 规范来源：《景枢平台总体开发规范》`1.3.0`
 
-当前实现已建立核心领域模型、状态机、内存与 PostgreSQL/S3/Redis 适配器、正式内部数据集 API、离线迁移导入命令行工具、事件发件箱（Outbox）工作进程、独立 Vue 数据工作台、身份权限校验、不可变审计、正式契约门禁、跨仓库端到端测试和自动化测试。`0.1.6` 消费 Contracts `1.2.0`，按清单 SHA-256 摘要锁定人体检测（Portrait）、OCR 文档识别、行为动作（Behavior）、服饰属性（Fashion）、布控误报复核及历史难例兼容模式，验证标注 JSON Schema、媒体类型和领域语义，并支持 `train/validation/test/query/gallery` 数据拆分。真实基础设施资格、容量、恢复和更完整的生产证据仍未完成，因此不得标记为 `production_ready`。
+当前实现已建立核心领域模型、状态机、内存与 PostgreSQL/S3/Redis 适配器、正式内部数据集 API、离线迁移导入命令行工具、事件发件箱（Outbox）工作进程、独立 Vue 数据工作台、身份权限校验、不可变审计、正式契约门禁、跨仓库端到端测试和自动化测试。`0.1.8` 补齐本地预生产演练工具：备份/恢复校验、对象巡检、只读压测、Outbox 死信重建、部署前证据报告与跨仓签名上下文工具；继续消费 Contracts `1.2.0`。真实基础设施资格、容量、恢复和正式切流证据仍需在目标环境执行，因此不得标记为 `production_ready`。
 
 剩余任务和生产资格前置条件见 [剩余任务计划](docs/REMAINING_TASK_PLAN.md)。
 
@@ -25,6 +25,7 @@
 python -m pip install -e ".[dev]"
 python -m ruff check src scripts tests
 python scripts/repository_gate.py
+python scripts/production_gate.py
 python -m pytest
 python start.py --reload
 uvicorn scenara_data.api.app:app --host 127.0.0.1 --port 8081
@@ -43,7 +44,7 @@ npm run dev
 
 ### 前端工作台
 
-数据平台前端位于 `frontend/data-console`，当前工作台版本为 `0.1.6`。页面包括总览、数据集、版本治理、难例导入和运维探针，面向用户的页面文本、状态标签、错误提示和设置表单均使用中文；协议字段、资源 ID、模型 ID、媒体类型和路径仍保留其机器可读形式。开发时先在仓库根目录启动后端，再在前端目录启动 Vite：
+数据平台前端位于 `frontend/data-console`，当前工作台版本为 `0.1.8`。页面包括总览、数据集、版本治理、难例导入和运维探针，面向用户的页面文本、状态标签、错误提示和设置表单均使用中文；协议字段、资源 ID、模型 ID、媒体类型和路径仍保留其机器可读形式。工作台令牌只保存在当前浏览器会话中。开发时先在仓库根目录启动后端，再在前端目录启动 Vite：
 
 ```powershell
 cd frontend/data-console

@@ -133,11 +133,11 @@ class SampleService(ApplicationService):
 
 def _metadata_split(metadata: dict[str, Any]) -> DatasetSplit | None:
     value = metadata.get("dataset_split")
-    if value in {"train", "query", "gallery"}:
+    if value in {"train", "validation", "test", "query", "gallery"}:
         return value  # type: ignore[return-value]
     if value is None:
         return None
     raise InputValidationError(
-        "dataset_split 只能是 train、query 或 gallery",
+        "dataset_split 只能是 train、validation、test、query 或 gallery",
         details={"dataset_split": value},
     )

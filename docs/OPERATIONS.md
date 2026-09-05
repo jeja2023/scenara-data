@@ -12,3 +12,34 @@
 - **事件回传服务凭据**：环境变量 `SCENARA_DATA_CORE_EVENT_TOKEN` 必须与核心平台内部事件接收端点的服务令牌保持一致，严禁与外部用户业务令牌混用。
 - **容灾恢复演练**：至少每季度开展一次全量数据库、清单和样本对象的灾难恢复演练，验证记录数、SHA-256 哈希值、权限范围和审计链完整性。
 - **运维告警规则**：覆盖 API 错误率突增、任务队列积压、数据集发布失败、清单摘要不一致、自动备份失败、存储容量阈值超限以及越权访问拒绝等核心场景。
+
+## 本地可执行演练工具
+
+以下工具已经纳入仓库，用于在隔离的本地/预生产环境生成可归档证据。所有实际写入或恢复操作都要求显式参数或确认值，默认只读/只报告。
+
+```powershell
+# 生成 custom-format PostgreSQL 备份、SHA-256 清单并上传备份桶。
+python scripts/backup_postgres.py --output-dir runtime-state/backups
+
+# 复制所有业务对象的版本快照到备份桶，并保存对象恢复清单。
+python scripts/backup_object_store.py --output-dir runtime-state/backups
+
+# 仅校验备份；恢复必须再加 --apply 且 --confirmation 等于清单中的 SHA-256。
+python scripts/restore_postgres.py --artifact <backup.dump> --manifest <backup.manifest.json> --target-database-url <isolated-db-url>
+python scripts/restore_object_store.py --manifest <object-snapshot.json>
+
+# 巡检六个业务桶的版本控制和对象校验和；高风险全量内容复算需加 --verify-content。
+python scripts/verify_object_inventory.py
+
+# 默认只列出死信；重建单条事件需显式 --apply。
+python scripts/rebuild_outbox.py --event-id <evt_id>
+python scripts/rebuild_outbox.py --event-id <evt_id> --apply --operator <operator-id>
+
+# 只读 API 压测，生成延迟和错误率报告。
+python scripts/load_test_api.py --base-url https://data-preprod.example --tenant-id <tenant> --project-id <project> --report runtime-state/reports/load.json
+
+# 生产 profile 下检查 TLS 依赖、对象版本、迁移摘要和 Outbox 死信，生成发布证据。
+python scripts/preproduction_check.py --report runtime-state/reports/preproduction.json
+```
+
+Core/Model 本地联调可使用 `scripts/sign_context.py` 生成与服务端完全一致的 HMAC 身份上下文头。该工具只输出占位 Bearer 令牌，绝不输出签名密钥。

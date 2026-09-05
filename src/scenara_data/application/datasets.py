@@ -522,11 +522,16 @@ class DatasetService(ApplicationService):
         )
         now = self._clock()
         active_grants = sorted(
-            (grant for grant in grants if grant.expires_at > now),
+            (
+                grant
+                for grant in grants
+                if grant.expires_at > now
+                and {"manifest.read", "objects.read"}.issubset(grant.permissions)
+            ),
             key=lambda grant: (grant.created_at, grant.grant_id),
         )
         if not active_grants:
-            raise InvalidStateError("数据集版本尚未签发有效的模型访问授权")
+            raise InvalidStateError("数据集版本尚未签发有效的模型完整访问授权")
         if value.lineage_snapshot_id is None or value.published_at is None or value.manifest_sha256 is None:
             raise InvalidStateError("发布版本缺少不可变清单或血缘快照")
         lineage_snapshot = self._lineage.get_snapshot(value.lineage_snapshot_id, context)
@@ -658,6 +663,8 @@ class DatasetService(ApplicationService):
         materialized: dict[str, ObjectReference] = {}
         for sample in samples:
             if sample.content_ref is not None:
+                if sample.content_ref.version is None:
+                    raise InvalidStateError("已物化样本必须使用带版本的不可变对象引用")
                 self._object_storage.read_verified(sample.content_ref)
                 materialized[sample.sample_id] = sample.content_ref
                 continue

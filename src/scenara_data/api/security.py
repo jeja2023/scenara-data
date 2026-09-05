@@ -10,6 +10,7 @@ import base64
 import hashlib
 import hmac
 import json
+import re
 import secrets
 import time
 from dataclasses import dataclass
@@ -33,6 +34,8 @@ SCOPES_HEADER = "x-scenara-permission-scopes"
 ENTITLEMENTS_HEADER = "x-scenara-product-entitlements"
 REQUEST_ID_HEADER = "x-request-id"
 TRACE_ID_HEADER = "x-trace-id"
+CONTEXT_TIMESTAMP_HEADER = "x-scenara-context-timestamp"
+CONTEXT_SIGNATURE_HEADER = "x-scenara-context-signature"
 
 PRINCIPAL_TYPES = frozenset({"user", "service_account"})
 CONSOLE_TOKEN_PREFIX = "scenara-data-console"
@@ -131,15 +134,30 @@ class RequestContextResolver:
             raise InputValidationError(
                 "主体类型未登记", details={"principal_type": principal_type}
             )
+        scopes = self._scopes(request)
+        entitlements = self._entitlements(request)
+        request_id = self._required(request, REQUEST_ID_HEADER)
+        trace_id = self._trace_id(request)
+        self._verify_context_signature(
+            request,
+            tenant_id=tenant_id,
+            project_id=project_id,
+            principal_id=principal_id,
+            principal_type=principal_type,
+            scopes=scopes,
+            entitlements=entitlements,
+            request_id=request_id,
+            trace_id=trace_id,
+        )
         return RequestContext(
             tenant_id=tenant_id,
             project_id=project_id,
             principal_id=principal_id,
-            permission_scopes=self._scopes(request),
-            request_id=self._required(request, REQUEST_ID_HEADER),
-            trace_id=self._trace_id(request),
+            permission_scopes=scopes,
+            request_id=request_id,
+            trace_id=trace_id,
             principal_type=principal_type,
-            product_entitlements=self._entitlements(request),
+            product_entitlements=entitlements,
             idempotency_key=self._idempotency_key(request),
         )
 
@@ -179,11 +197,65 @@ class RequestContextResolver:
     def _trace_id(self, request: Request) -> str:
         explicit = request.headers.get(TRACE_ID_HEADER)
         if explicit and explicit.strip():
-            return explicit.strip()[:MAX_HEADER_LENGTH]
+            value = explicit.strip()
+            if not re.fullmatch(r"[0-9a-f]{32}", value):
+                raise InputValidationError("X-Trace-Id 必须是 32 位小写十六进制")
+            return value
         extracted = extract_trace_id(request.headers.get("traceparent"))
         if extracted is None:
             raise InputValidationError("缺少 X-Trace-Id 或合法 traceparent")
         return extracted
+
+    def _verify_context_signature(
+        self,
+        request: Request,
+        *,
+        tenant_id: str,
+        project_id: str,
+        principal_id: str,
+        principal_type: str,
+        scopes: tuple[str, ...],
+        entitlements: tuple[str, ...],
+        request_id: str,
+        trace_id: str,
+    ) -> None:
+        """验证 Core 对身份上下文的短时 HMAC 声明，避免 bearer 持有者伪造范围。"""
+        if not self._settings.require_signed_request_context:
+            return
+        signing_key = self._settings.request_context_signing_key
+        if not signing_key:
+            raise AuthenticationError("服务端未配置请求上下文签名密钥")
+        raw_timestamp = self._signature_header(request, CONTEXT_TIMESTAMP_HEADER, max_length=32)
+        try:
+            timestamp = int(raw_timestamp)
+        except ValueError as exc:
+            raise AuthenticationError("请求上下文签名时间无效") from exc
+        if abs(int(time.time()) - timestamp) > self._settings.request_context_max_age_seconds:
+            raise AuthenticationError("请求上下文签名已过期")
+        signature = self._signature_header(request, CONTEXT_SIGNATURE_HEADER, max_length=128)
+        expected = sign_request_context(
+            signing_key,
+            method=request.method,
+            path=request.url.path,
+            tenant_id=tenant_id,
+            project_id=project_id,
+            principal_id=principal_id,
+            principal_type=principal_type,
+            scopes=scopes,
+            entitlements=entitlements,
+            request_id=request_id,
+            trace_id=trace_id,
+            timestamp=timestamp,
+        )
+        if not secrets.compare_digest(signature, expected):
+            raise AuthenticationError("请求上下文签名无效")
+
+    @staticmethod
+    def _signature_header(request: Request, name: str, *, max_length: int) -> str:
+        value = request.headers.get(name)
+        if value is None or not value.strip() or len(value) > max_length:
+            raise AuthenticationError("缺少或无效的请求上下文签名")
+        return value.strip()
 
     @staticmethod
     def _idempotency_key(request: Request) -> str | None:
@@ -209,6 +281,39 @@ def _sign_console_payload(settings: Settings, encoded_payload: str) -> str:
     secret = settings.console_session_secret or settings.trusted_service_token
     digest = hmac.new(secret.encode("utf-8"), encoded_payload.encode("ascii"), hashlib.sha256).digest()
     return _b64encode(digest)
+
+
+def sign_request_context(
+    signing_key: str,
+    *,
+    method: str,
+    path: str,
+    tenant_id: str,
+    project_id: str,
+    principal_id: str,
+    principal_type: str,
+    scopes: tuple[str, ...],
+    entitlements: tuple[str, ...],
+    request_id: str,
+    trace_id: str,
+    timestamp: int,
+) -> str:
+    """生成 Core 与本地联调工具共用的身份上下文 HMAC-SHA256 签名。"""
+    payload = {
+        "entitlements": sorted(set(entitlements)),
+        "method": method.upper(),
+        "path": path,
+        "principal_id": principal_id,
+        "principal_type": principal_type,
+        "project_id": project_id,
+        "request_id": request_id,
+        "scopes": sorted(set(scopes)),
+        "tenant_id": tenant_id,
+        "timestamp": timestamp,
+        "trace_id": trace_id,
+    }
+    encoded = json.dumps(payload, ensure_ascii=True, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hmac.new(signing_key.encode("utf-8"), encoded, hashlib.sha256).hexdigest()
 
 
 def _b64encode(value: bytes) -> str:

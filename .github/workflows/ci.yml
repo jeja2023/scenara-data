@@ -29,13 +29,38 @@ jobs:
       - run: python -m ruff check src scripts tests
       - run: python scripts/validate_repository_contracts.py --contracts-root ${{ github.workspace }}/scenara-contracts
       - run: python scripts/repository_gate.py
+      - run: python scripts/production_gate.py
       - run: python -m pytest
         env:
           SCENARA_CORE_REPO: ${{ github.workspace }}/scenara-core
-      - run: docker build -f deploy/Dockerfile -t scenara-data:ci .
+      - run: python -m pip install pip-audit==2.9.0
+      - run: pip-audit --strict
+      - run: docker build --sbom=true --provenance=mode=max -f deploy/Dockerfile -t scenara-data:ci .
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/data-console/package-lock.json
+      - working-directory: frontend/data-console
+        run: npm ci
+      - working-directory: frontend/data-console
+        run: npm run typecheck
+      - working-directory: frontend/data-console
+        run: npm run build
 
   integration-services:
     runs-on: ubuntu-latest
+    env:
+      SCENARA_DATA_POSTGRES_PASSWORD: ci-postgres-password
+      SCENARA_DATA_MINIO_ROOT_PASSWORD: ci-minio-password
+      SCENARA_DATA_TRUSTED_SERVICE_TOKEN: ci-service-token-not-for-production
+      SCENARA_DATA_CORE_EVENT_ENDPOINT: http://host.docker.internal:18080/internal/v1/data/events
+      SCENARA_DATA_CORE_EVENT_TOKEN: ci-event-token-not-for-production
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -52,11 +77,11 @@ jobs:
       - run: python -m pytest -m integration tests/test_integration_services.py
         env:
           SCENARA_RUN_INTEGRATION: "1"
-          SCENARA_DATA_INTEGRATION_DATABASE_URL: "postgresql://scenara_data:data-dev-only@127.0.0.1:5432/scenara_data"
+          SCENARA_DATA_INTEGRATION_DATABASE_URL: "postgresql://scenara_data:ci-postgres-password@127.0.0.1:5432/scenara_data"
           SCENARA_DATA_INTEGRATION_REDIS_URL: "redis://127.0.0.1:6379/1"
           SCENARA_DATA_INTEGRATION_S3_ENDPOINT_URL: "http://127.0.0.1:9000"
           SCENARA_DATA_INTEGRATION_S3_ACCESS_KEY_ID: "scenara-data"
-          SCENARA_DATA_INTEGRATION_S3_SECRET_ACCESS_KEY: "data-dev-only"
+          SCENARA_DATA_INTEGRATION_S3_SECRET_ACCESS_KEY: "ci-minio-password"
       - name: Stop integration services
         if: always()
         run: docker compose -f deploy/compose.yml down --volumes --remove-orphans

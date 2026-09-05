@@ -10,4 +10,4 @@
 接口层（api） -> 领域层（domain） -> 端口层（ports） <- 适配器层（adapters）
 ```
 
-第一阶段基础设施边界为 PostgreSQL 逻辑库 `scenara_data`、Redis 逻辑库 1，以及兼容 S3 的对象存储提供方所管理的 `scenara-datasets`（数据集桶）、`scenara-artifacts`（工件桶）和 `scenara-backups`（备份桶）。业务层不得硬编码具体云服务提供方。
+第一阶段基础设施边界为 PostgreSQL 逻辑库 `scenara_data`、Redis 逻辑库 1，以及兼容 S3 的对象存储提供方所管理的 `scenara-datasets`（数据集桶）、`scenara-artifacts`（工件桶）和 `scenara-data-backups`（备份桶）。业务层不得硬编码具体云服务提供方。

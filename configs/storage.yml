@@ -10,6 +10,6 @@ object_storage:
   buckets:
     datasets: scenara-datasets
     artifacts: scenara-artifacts
-    backups: scenara-backups
+    backups: scenara-data-backups
   immutable_published_objects: true
   checksum: sha256

@@ -4,26 +4,26 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scenara-data"
-version = "0.1.6"
+version = "0.1.8"
 description = "景枢数据资产、数据集、标注、质量与血缘领域服务。"
 requires-python = ">=3.12"
 dependencies = [
-  "fastapi>=0.115",
-  "jsonschema>=4.25",
-  "pydantic>=2.10",
-  "PyYAML>=6",
-  "uvicorn>=0.32",
+  "fastapi==0.141.1",
+  "jsonschema==4.26.0",
+  "pydantic==2.13.5",
+  "PyYAML==6.0.3",
+  "uvicorn==0.52.4",
 ]
 
 [project.optional-dependencies]
-postgres = ["psycopg[binary]>=3.2"]
-s3 = ["boto3>=1.35"]
-redis = ["redis>=5.2"]
-http = ["httpx>=0.28"]
+postgres = ["psycopg[binary]==3.3.5"]
+s3 = ["boto3==1.43.89"]
+redis = ["redis==8.1.0"]
+http = ["httpx==0.28.1"]
 dev = [
   "cryptography>=43",
-  "httpx>=0.28",
-  "jsonschema>=4.25",
+  "httpx==0.28.1",
+  "jsonschema==4.26.0",
   "pillow>=10",
   "pytest>=8",
   "pytest-asyncio>=0.24",
@@ -34,7 +34,7 @@ dev = [
 where = ["src"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 testpaths = ["tests"]
 addopts = "-q -p no:cacheprovider"
 asyncio_mode = "auto"

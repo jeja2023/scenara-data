@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 
@@ -8,6 +9,7 @@ import httpx
 import pytest
 
 from scenara_data.api.app import create_app
+from scenara_data.api.security import sign_request_context
 from scenara_data.config import DEFAULT_DEV_SERVICE_TOKEN, Settings
 from scenara_data.domain.models import ObjectReference
 
@@ -97,6 +99,50 @@ async def test_request_validation_error_messages_are_localized(client: ApiClient
     assert response.status_code == 422
     violations = response.json()["error"]["details"]["violations"]
     assert any(item["message"] == "字符串长度不足" for item in violations)
+
+
+@pytest.mark.asyncio
+async def test_signed_service_context_is_required_when_enabled() -> None:
+    signing_key = "context-signing-key-that-is-long-enough-for-tests"
+    application = create_app(
+        Settings(require_signed_request_context=True, request_context_signing_key=signing_key)
+    )
+    request_headers = headers()
+    timestamp = int(time.time())
+    payload = {
+        "entitlements": ["scenara.data"],
+        "method": "GET",
+        "path": "/internal/v1/datasets",
+        "principal_id": "user-a",
+        "principal_type": "user",
+        "project_id": "project-a",
+        "request_id": "req-api-workflow",
+        "scopes": sorted(ALL_SCOPES),
+        "tenant_id": "tenant-a",
+        "timestamp": timestamp,
+        "trace_id": "0123456789abcdef0123456789abcdef",
+    }
+    request_headers["X-Scenara-Context-Timestamp"] = str(timestamp)
+    transport = httpx.ASGITransport(app=application)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as http_client:
+        missing = await http_client.get("/internal/v1/datasets", headers=request_headers)
+        assert missing.status_code == 401
+        request_headers["X-Scenara-Context-Signature"] = sign_request_context(
+            signing_key,
+            method="GET",
+            path="/internal/v1/datasets",
+            tenant_id="tenant-a",
+            project_id="project-a",
+            principal_id="user-a",
+            principal_type="user",
+            scopes=tuple(payload["scopes"]),
+            entitlements=tuple(payload["entitlements"]),
+            request_id="req-api-workflow",
+            trace_id="0123456789abcdef0123456789abcdef",
+            timestamp=timestamp,
+        )
+        accepted = await http_client.get("/internal/v1/datasets", headers=request_headers)
+    assert accepted.status_code == 200
 
 
 async def create_active_dataset(client: ApiClient, dataset_id: str) -> None:
@@ -311,12 +357,27 @@ async def test_dataset_version_publish_freezes_manifest_and_exposes_model_refere
     assert manifest.json()["split_counts"] == {"train": 1}
     assert manifest.json()["samples"][0]["content_ref"]["bucket"] == "scenara-datasets"
 
+    insufficient_grant = await client.post(
+        "/internal/v1/dataset-versions/dsv_lifecycle/access-grants",
+        headers=headers(idempotency_key="grant-objects-only"),
+        json={
+            "service_account_id": "service-objects-only",
+            "permissions": ["objects.read"],
+            "ttl_seconds": 300,
+        },
+    )
+    assert insufficient_grant.status_code == 201, insufficient_grant.text
+    missing_complete_grant = await client.get(
+        "/internal/v1/dataset-versions/dsv_lifecycle/reference", headers=headers()
+    )
+    assert missing_complete_grant.status_code == 409
+
     grant = await client.post(
         "/internal/v1/dataset-versions/dsv_lifecycle/access-grants",
         headers=headers(idempotency_key="grant-lifecycle"),
         json={
             "service_account_id": "service-model",
-            "permissions": ["manifest.read"],
+            "permissions": ["manifest.read", "objects.read"],
             "ttl_seconds": 300,
         },
     )

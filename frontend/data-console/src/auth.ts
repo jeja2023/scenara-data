@@ -26,15 +26,16 @@ export function isSignedIn(): boolean {
 
 export function completeSignIn(
   connection: ConnectionSettings,
-  remember: boolean,
+  _remember: boolean,
   expiresAt?: number,
 ): void {
-  saveConnection(connection, { persistAuth: remember });
+  // 会话令牌始终只保存在 sessionStorage，避免长期令牌暴露给持久化 XSS。
+  saveConnection(connection, { persistAuth: false });
   sessionStorage.removeItem(AUTH_STORAGE_KEY);
   localStorage.removeItem(AUTH_STORAGE_KEY);
   sessionStorage.removeItem(AUTH_EXPIRES_KEY);
   localStorage.removeItem(AUTH_EXPIRES_KEY);
-  const storage = remember ? localStorage : sessionStorage;
+  const storage = sessionStorage;
   storage.setItem(AUTH_STORAGE_KEY, "1");
   if (expiresAt && Number.isFinite(expiresAt)) {
     storage.setItem(AUTH_EXPIRES_KEY, String(expiresAt));

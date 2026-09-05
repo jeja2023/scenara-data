@@ -1,11 +1,11 @@
 {
   "name": "@scenara/data-console",
-  "version": "0.1.6",
+  "version": "0.1.8",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build --configLoader native",
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit"
   },

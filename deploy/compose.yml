@@ -1,3 +1,4 @@
+# 仅供本地开发和 CI 集成测试使用；生产环境必须使用 compose.production.yml。
 services:
   data-api:
     build:
@@ -7,15 +8,15 @@ services:
       - "8081:8081"
     environment:
       SCENARA_DATA_RUNTIME_MODE: postgres
-      SCENARA_DATA_DATABASE_URL: postgresql://scenara_data:${SCENARA_DATA_POSTGRES_PASSWORD:-data-dev-only}@postgres:5432/scenara_data
+      SCENARA_DATA_DATABASE_URL: postgresql://scenara_data:${SCENARA_DATA_POSTGRES_PASSWORD:?必须设置 SCENARA_DATA_POSTGRES_PASSWORD}@postgres:5432/scenara_data
       SCENARA_DATA_REDIS_URL: redis://redis:6379/1
       SCENARA_DATA_S3_ENDPOINT_URL: http://minio:9000
       SCENARA_DATA_S3_ACCESS_KEY_ID: ${SCENARA_DATA_MINIO_ROOT_USER:-scenara-data}
-      SCENARA_DATA_S3_SECRET_ACCESS_KEY: ${SCENARA_DATA_MINIO_ROOT_PASSWORD:-data-dev-only}
+      SCENARA_DATA_S3_SECRET_ACCESS_KEY: ${SCENARA_DATA_MINIO_ROOT_PASSWORD:?必须设置 SCENARA_DATA_MINIO_ROOT_PASSWORD}
       SCENARA_DATA_DATASET_BUCKET: scenara-datasets
-      SCENARA_DATA_TRUSTED_SERVICE_TOKEN: ${SCENARA_DATA_TRUSTED_SERVICE_TOKEN:-scenara-data-compose-token}
-      SCENARA_DATA_CORE_EVENT_ENDPOINT: ${SCENARA_DATA_CORE_EVENT_ENDPOINT:-http://host.docker.internal:8080/internal/v1/data/events}
-      SCENARA_DATA_CORE_EVENT_TOKEN: ${SCENARA_DATA_CORE_EVENT_TOKEN:-scenara-data-compose-event-token}
+      SCENARA_DATA_TRUSTED_SERVICE_TOKEN: ${SCENARA_DATA_TRUSTED_SERVICE_TOKEN:?必须设置 SCENARA_DATA_TRUSTED_SERVICE_TOKEN}
+      SCENARA_DATA_CORE_EVENT_ENDPOINT: ${SCENARA_DATA_CORE_EVENT_ENDPOINT:?必须设置 SCENARA_DATA_CORE_EVENT_ENDPOINT}
+      SCENARA_DATA_CORE_EVENT_TOKEN: ${SCENARA_DATA_CORE_EVENT_TOKEN:?必须设置 SCENARA_DATA_CORE_EVENT_TOKEN}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -37,14 +38,14 @@ services:
     command: ["python", "scripts/run_outbox.py"]
     environment:
       SCENARA_DATA_RUNTIME_MODE: postgres
-      SCENARA_DATA_DATABASE_URL: postgresql://scenara_data:${SCENARA_DATA_POSTGRES_PASSWORD:-data-dev-only}@postgres:5432/scenara_data
+      SCENARA_DATA_DATABASE_URL: postgresql://scenara_data:${SCENARA_DATA_POSTGRES_PASSWORD:?必须设置 SCENARA_DATA_POSTGRES_PASSWORD}@postgres:5432/scenara_data
       SCENARA_DATA_REDIS_URL: redis://redis:6379/1
       SCENARA_DATA_S3_ENDPOINT_URL: http://minio:9000
       SCENARA_DATA_S3_ACCESS_KEY_ID: ${SCENARA_DATA_MINIO_ROOT_USER:-scenara-data}
-      SCENARA_DATA_S3_SECRET_ACCESS_KEY: ${SCENARA_DATA_MINIO_ROOT_PASSWORD:-data-dev-only}
-      SCENARA_DATA_TRUSTED_SERVICE_TOKEN: ${SCENARA_DATA_TRUSTED_SERVICE_TOKEN:-scenara-data-compose-token}
-      SCENARA_DATA_CORE_EVENT_ENDPOINT: ${SCENARA_DATA_CORE_EVENT_ENDPOINT:-http://host.docker.internal:8080/internal/v1/data/events}
-      SCENARA_DATA_CORE_EVENT_TOKEN: ${SCENARA_DATA_CORE_EVENT_TOKEN:-scenara-data-compose-event-token}
+      SCENARA_DATA_S3_SECRET_ACCESS_KEY: ${SCENARA_DATA_MINIO_ROOT_PASSWORD:?必须设置 SCENARA_DATA_MINIO_ROOT_PASSWORD}
+      SCENARA_DATA_TRUSTED_SERVICE_TOKEN: ${SCENARA_DATA_TRUSTED_SERVICE_TOKEN:?必须设置 SCENARA_DATA_TRUSTED_SERVICE_TOKEN}
+      SCENARA_DATA_CORE_EVENT_ENDPOINT: ${SCENARA_DATA_CORE_EVENT_ENDPOINT:?必须设置 SCENARA_DATA_CORE_EVENT_ENDPOINT}
+      SCENARA_DATA_CORE_EVENT_TOKEN: ${SCENARA_DATA_CORE_EVENT_TOKEN:?必须设置 SCENARA_DATA_CORE_EVENT_TOKEN}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -65,19 +66,19 @@ services:
       dockerfile: deploy/Dockerfile
     command: ["python", "scripts/migrate.py"]
     environment:
-      SCENARA_DATA_DATABASE_URL: postgresql://scenara_data:${SCENARA_DATA_POSTGRES_PASSWORD:-data-dev-only}@postgres:5432/scenara_data
+      SCENARA_DATA_DATABASE_URL: postgresql://scenara_data:${SCENARA_DATA_POSTGRES_PASSWORD:?必须设置 SCENARA_DATA_POSTGRES_PASSWORD}@postgres:5432/scenara_data
     depends_on:
       postgres:
         condition: service_healthy
 
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector@sha256:1d533553fefe4f12e5d80c7b80622ba0c382abb5758856f52983d8789179f0fb
     ports:
       - "5432:5432"
     environment:
       POSTGRES_DB: scenara_data
       POSTGRES_USER: scenara_data
-      POSTGRES_PASSWORD: ${SCENARA_DATA_POSTGRES_PASSWORD:-data-dev-only}
+      POSTGRES_PASSWORD: ${SCENARA_DATA_POSTGRES_PASSWORD:?必须设置 SCENARA_DATA_POSTGRES_PASSWORD}
     volumes:
       - scenara-data-postgres:/var/lib/postgresql/data
     healthcheck:
@@ -87,7 +88,7 @@ services:
       retries: 5
 
   redis:
-    image: redis:7-alpine
+    image: redis@sha256:e7723ff73d963f5cc6d9c4643ea3d989527a402a319239054e9472a7fb9219a2
     ports:
       - "6379:6379"
     healthcheck:
@@ -97,14 +98,14 @@ services:
       retries: 5
 
   minio:
-    image: minio/minio:latest
+    image: minio/minio@sha256:d249d1fb6966de4d8ad26c04754b545205ff15a62e4fd19ebd0f26fa5baacbc0
     ports:
       - "9000:9000"
       - "9001:9001"
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${SCENARA_DATA_MINIO_ROOT_USER:-scenara-data}
-      MINIO_ROOT_PASSWORD: ${SCENARA_DATA_MINIO_ROOT_PASSWORD:-data-dev-only}
+      MINIO_ROOT_PASSWORD: ${SCENARA_DATA_MINIO_ROOT_PASSWORD:?必须设置 SCENARA_DATA_MINIO_ROOT_PASSWORD}
     volumes:
       - scenara-data-minio:/data
     healthcheck:
@@ -114,7 +115,7 @@ services:
       retries: 5
 
   minio-init:
-    image: minio/mc:latest
+    image: minio/mc@sha256:fb8f773eac8ef9d6da0486d5dec2f42f219358bcb8de579d1623d518c9ebd4cc
     entrypoint: ["/bin/sh", "-ec"]
     command:
       - >-
@@ -124,10 +125,16 @@ services:
         && mc mb --ignore-existing local/scenara-data-imports
         && mc mb --ignore-existing local/scenara-data-exports
         && mc mb --ignore-existing local/scenara-artifacts
-        && mc mb --ignore-existing local/scenara-backups
+        && mc mb --ignore-existing local/scenara-data-backups
+        && mc version enable local/scenara-datasets
+        && mc version enable local/scenara-data-manifests
+        && mc version enable local/scenara-data-imports
+        && mc version enable local/scenara-data-exports
+        && mc version enable local/scenara-artifacts
+        && mc version enable local/scenara-data-backups
     environment:
       MINIO_ROOT_USER: ${SCENARA_DATA_MINIO_ROOT_USER:-scenara-data}
-      MINIO_ROOT_PASSWORD: ${SCENARA_DATA_MINIO_ROOT_PASSWORD:-data-dev-only}
+      MINIO_ROOT_PASSWORD: ${SCENARA_DATA_MINIO_ROOT_PASSWORD:?必须设置 SCENARA_DATA_MINIO_ROOT_PASSWORD}
     depends_on:
       minio:
         condition: service_healthy

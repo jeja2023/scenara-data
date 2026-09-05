@@ -22,7 +22,7 @@ def integration_settings() -> Settings:
         runtime_mode="postgres",
         database_url=os.getenv(
             "SCENARA_DATA_INTEGRATION_DATABASE_URL",
-            "postgresql://scenara_data:data-dev-only@127.0.0.1:5432/scenara_data",
+            "postgresql://scenara_data:integration-postgres-password@127.0.0.1:5432/scenara_data",
         ),
         redis_url=os.getenv("SCENARA_DATA_INTEGRATION_REDIS_URL", "redis://127.0.0.1:6379/1"),
         object_storage_endpoint=os.getenv(
@@ -32,7 +32,7 @@ def integration_settings() -> Settings:
             "SCENARA_DATA_INTEGRATION_S3_ACCESS_KEY_ID", "scenara-data"
         ),
         object_storage_secret_key=os.getenv(
-            "SCENARA_DATA_INTEGRATION_S3_SECRET_ACCESS_KEY", "data-dev-only"
+            "SCENARA_DATA_INTEGRATION_S3_SECRET_ACCESS_KEY", "integration-minio-password"
         ),
         trusted_service_token=os.getenv("SCENARA_DATA_INTEGRATION_SERVICE_TOKEN", "integration-token"),
         core_event_endpoint=os.getenv(
@@ -57,6 +57,7 @@ def headers(idempotency_key: str) -> dict[str, str]:
                 "data.dataset.read",
                 "data.dataset.update",
                 "data.dataset.publish",
+                "data.dataset.archive",
                 "data.sample.create",
                 "data.sample.read",
                 "data.quality.run",
@@ -102,6 +103,7 @@ async def test_postgres_redis_and_s3_dependencies_work_together() -> None:
         settings.import_bucket,
         settings.export_bucket,
         settings.artifact_bucket,
+        settings.backup_bucket,
     }:
         try:
             client.create_bucket(Bucket=bucket)
@@ -191,12 +193,18 @@ async def test_postgres_redis_and_s3_dependencies_work_together() -> None:
         assert published.status_code == 200, published.text
         manifest = published.json()["manifest"]
         manifest_ref = ObjectReference.model_validate(manifest["manifest_ref"])
+        archived = await api.post(
+            f"/internal/v1/dataset-versions/{version_id}/transition",
+            headers=headers("archive-version"),
+            json={"status": "archived"},
+        )
+        assert archived.status_code == 200, archived.text
+        assert archived.json()["status"] == "archived"
 
     storage = app.state.container.object_storage
     payload = storage.read_verified(manifest_ref)
     assert sample_id.encode("ascii") in payload
     assert manifest_ref.bucket == settings.manifest_bucket
-
 
 def scenara_redis_lock(redis_url: str):
     redis = importlib.import_module("redis")
