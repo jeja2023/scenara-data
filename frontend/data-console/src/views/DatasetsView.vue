@@ -306,7 +306,7 @@ useRefresh(refresh);
   <section class="page dataset-page">
     <div class="hero-band panel" style="margin-bottom: 16px;">
       <div>
-        <p class="eyebrow">景枢数据平台 · 核心资产治理</p>
+        <p class="eyebrow">scenara data · 核心资产治理</p>
         <h2>数据集与版本生命周期管理</h2>
         <p class="hero-copy">
           当前选中数据集：

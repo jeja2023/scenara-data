@@ -58,6 +58,7 @@ class Settings:
     backup_bucket: str = "scenara-data-backups"
     artifact_bucket: str = "scenara-artifacts"
     trusted_service_token: str = DEFAULT_DEV_SERVICE_TOKEN
+    trusted_service_tokens: tuple[str, ...] = ()
     request_context_signing_key: str | None = None
     require_signed_request_context: bool = False
     request_context_max_age_seconds: int = 300
@@ -99,6 +100,8 @@ class Settings:
         return self.deployment_profile == "production"
 
     def __post_init__(self) -> None:
+        if not self.trusted_service_tokens:
+            object.__setattr__(self, "trusted_service_tokens", (self.trusted_service_token,))
         if self.console_password is None:
             object.__setattr__(self, "console_password", self.trusted_service_token)
         if self.console_session_secret is None:
@@ -189,6 +192,16 @@ def load_settings() -> Settings:
             raise RuntimeError("PostgreSQL 运行模式拒绝使用开发默认服务令牌")
     elif not token:
         token = DEFAULT_DEV_SERVICE_TOKEN
+    additional_tokens = _secret("SCENARA_DATA_TRUSTED_SERVICE_TOKENS")
+    trusted_tokens = tuple(
+        sorted(
+            {
+                value.strip()
+                for value in (token + "," + (additional_tokens or "")).replace("\n", ",").replace("\r", ",").split(",")
+                if value.strip()
+            }
+        )
+    )
 
     source_systems = tuple(
         sorted(
@@ -248,9 +261,9 @@ def load_settings() -> Settings:
             raise RuntimeError("生产部署必须使用 PostgreSQL 事实存储模式")
         if database_url == DEFAULT_DATABASE_URL or "sslmode=" not in database_url:
             raise RuntimeError("生产部署必须配置数据库连接地址")
-        if len(token) < 32 or token in INSECURE_SERVICE_TOKENS:
+        if any(len(value) < 32 or value in INSECURE_SERVICE_TOKENS for value in trusted_tokens):
             raise RuntimeError("生产部署必须配置至少 32 位且非默认的服务凭据")
-        if not context_signing_key or len(context_signing_key) < 32 or context_signing_key == token:
+        if not context_signing_key or len(context_signing_key) < 32 or context_signing_key in trusted_tokens:
             raise RuntimeError("生产部署必须配置独立且至少 32 位的请求上下文签名密钥")
         if not event_endpoint or not event_endpoint.startswith("https://") or len(event_token or "") < 32:
             raise RuntimeError("生产部署的 Core 事件端点必须使用 HTTPS")
@@ -281,6 +294,7 @@ def load_settings() -> Settings:
         backup_bucket=os.getenv("SCENARA_DATA_BACKUP_BUCKET", "scenara-data-backups"),
         artifact_bucket=os.getenv("SCENARA_DATA_ARTIFACT_BUCKET", "scenara-artifacts"),
         trusted_service_token=token,
+        trusted_service_tokens=trusted_tokens,
         request_context_signing_key=context_signing_key,
         require_signed_request_context=require_signed_context,
         request_context_max_age_seconds=_positive_int(

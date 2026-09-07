@@ -1,0 +1,85 @@
+name: scenara-data-shared-test
+
+# Shared-infrastructure test profile. PostgreSQL, Redis and MinIO are owned by
+# scenara/deploy/shared-infra; this file owns only Data API and its Outbox.
+services:
+  data-migrate:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    command: ["python", "scripts/migrate.py"]
+    environment: &data-environment
+      SCENARA_DATA_DEPLOYMENT_PROFILE: development
+      SCENARA_DATA_RUNTIME_MODE: postgres
+      SCENARA_DATA_DATABASE_URL: postgresql://scenara_data:${SCENARA_DATA_DB_PASSWORD:?set SCENARA_DATA_DB_PASSWORD}@postgres:5432/scenara_data
+      SCENARA_DATA_REDIS_URL: redis://:${SCENARA_INFRA_REDIS_PASSWORD:?set SCENARA_INFRA_REDIS_PASSWORD}@redis:6379/1
+      SCENARA_DATA_S3_ENDPOINT_URL: http://minio:9000
+      SCENARA_DATA_S3_REGION: us-east-1
+      SCENARA_DATA_S3_ACCESS_KEY_ID: ${SCENARA_DATA_S3_ACCESS_KEY:?set SCENARA_DATA_S3_ACCESS_KEY}
+      SCENARA_DATA_S3_SECRET_ACCESS_KEY: ${SCENARA_DATA_S3_SECRET_KEY:?set SCENARA_DATA_S3_SECRET_KEY}
+      SCENARA_DATA_DATASET_BUCKET: scenara-datasets
+      SCENARA_DATA_MANIFEST_BUCKET: scenara-data-manifests
+      SCENARA_DATA_IMPORT_BUCKET: scenara-data-imports
+      SCENARA_DATA_EXPORT_BUCKET: scenara-data-exports
+      SCENARA_DATA_ARTIFACT_BUCKET: scenara-artifacts
+      SCENARA_DATA_BACKUP_BUCKET: scenara-data-backups
+      SCENARA_DATA_TRUSTED_SERVICE_TOKEN: ${SCENARA_DATA_SERVICE_TOKEN:?set SCENARA_DATA_SERVICE_TOKEN}
+      SCENARA_DATA_TRUSTED_SERVICE_TOKENS: ${SCENARA_DATA_TRUSTED_SERVICE_TOKENS:?set SCENARA_DATA_TRUSTED_SERVICE_TOKENS}
+      SCENARA_DATA_REQUEST_CONTEXT_SIGNING_KEY: ${SCENARA_DATA_CONTEXT_SIGNING_KEY:?set SCENARA_DATA_CONTEXT_SIGNING_KEY}
+      SCENARA_DATA_REQUIRE_SIGNED_REQUEST_CONTEXT: "true"
+      SCENARA_DATA_REQUIRE_OBJECT_VERSIONING: "true"
+      SCENARA_DATA_CORE_EVENT_ENDPOINT: http://api:8000/internal/v1/data/events
+      SCENARA_DATA_CORE_EVENT_TOKEN: ${SCENARA_DATA_CORE_EVENT_TOKEN:?set SCENARA_DATA_CORE_EVENT_TOKEN}
+      SCENARA_DATA_CONSOLE_LOGIN_ENABLED: "false"
+      SCENARA_DATA_CORS_ALLOW_ORIGINS: http://127.0.0.1:8000
+    networks: [platform]
+    restart: "no"
+
+  data-api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    command: ["uvicorn", "scenara_data.api.app:app", "--host", "0.0.0.0", "--port", "8081", "--timeout-graceful-shutdown", "30"]
+    environment: *data-environment
+    networks: [platform]
+    depends_on:
+      data-migrate:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${SCENARA_DATA_TEST_PORT:-58081}:8081"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=256m"]
+    init: true
+    stop_grace_period: 35s
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/readyz', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  data-outbox:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    command: ["python", "scripts/run_outbox.py"]
+    environment: *data-environment
+    networks: [platform]
+    depends_on:
+      data-migrate:
+        condition: service_completed_successfully
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:rw,noexec,nosuid,nodev,size=128m"]
+    init: true
+    stop_grace_period: 35s
+    restart: unless-stopped
+
+networks:
+  platform:
+    external: true
+    name: ${SCENARA_PLATFORM_NETWORK:-scenara-platform}

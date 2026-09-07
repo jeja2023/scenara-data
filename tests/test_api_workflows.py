@@ -54,6 +54,50 @@ async def client() -> AsyncIterator[ApiClient]:
         yield ApiClient(app=application, http=http_client)
 
 
+@pytest.mark.asyncio
+async def test_additional_trusted_service_token_can_access_signed_context() -> None:
+    signing_key = "context-signing-key-that-is-long-enough-for-tests"
+    application = create_app(
+        Settings(
+            trusted_service_token="core-service-token",
+            trusted_service_tokens=("core-service-token", "model-service-token"),
+            request_context_signing_key=signing_key,
+            require_signed_request_context=True,
+        )
+    )
+    request_headers = {
+        "Authorization": "Bearer model-service-token",
+        "X-Scenara-Tenant-Id": "tenant-a",
+        "X-Scenara-Project-Id": "project-a",
+        "X-Scenara-Principal-Id": "model-worker",
+        "X-Scenara-Principal-Type": "service_account",
+        "X-Scenara-Permission-Scopes": "data.dataset.read",
+        "X-Scenara-Product-Entitlements": "data",
+        "X-Request-Id": "req-model-token",
+        "X-Trace-Id": "0123456789abcdef0123456789abcdef",
+    }
+    timestamp = int(time.time())
+    request_headers["X-Scenara-Context-Timestamp"] = str(timestamp)
+    request_headers["X-Scenara-Context-Signature"] = sign_request_context(
+        signing_key,
+        method="GET",
+        path="/internal/v1/datasets",
+        tenant_id="tenant-a",
+        project_id="project-a",
+        principal_id="model-worker",
+        principal_type="service_account",
+        scopes=("data.dataset.read",),
+        entitlements=("data",),
+        request_id="req-model-token",
+        trace_id="0123456789abcdef0123456789abcdef",
+        timestamp=timestamp,
+    )
+    transport = httpx.ASGITransport(app=application)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as http_client:
+        response = await http_client.get("/internal/v1/datasets", headers=request_headers)
+    assert response.status_code == 200
+
+
 def headers(
     *,
     tenant_id: str = "tenant-a",

@@ -438,7 +438,7 @@ useRefresh(refresh);
   <section class="page hard-samples-page">
     <div class="hero-band panel" style="margin-bottom: 16px;">
       <div>
-        <p class="eyebrow">景枢数据平台 · 难例负反馈接入</p>
+        <p class="eyebrow">scenara data · 难例负反馈接入</p>
         <h2>难例导入与质量校验</h2>
         <p class="hero-copy">
           接收现场排查出的误报、漏报与属性错误样本，自动完成格式契约校验与 SHA-256 签名，接入模型微调闭环。

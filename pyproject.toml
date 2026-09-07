@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scenara-data"
-version = "0.1.9"
-description = "景枢数据资产、数据集、标注、质量与血缘领域服务。"
+version = "0.1.10"
+description = "scenara data 数据资产、数据集、标注、质量与血缘领域服务。"
 requires-python = ">=3.12"
 dependencies = [
   "fastapi==0.141.1",

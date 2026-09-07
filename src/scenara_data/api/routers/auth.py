@@ -56,7 +56,7 @@ def _limiter(request: Request) -> LoginAttemptLimiter:
     return limiter
 
 
-@router.post("/api/v1/auth/login", response_model=LoginResponse, summary="数据工作台登录")
+@router.post("/api/v1/auth/login", response_model=LoginResponse, summary="scenara data 登录")
 @router.post("/internal/v1/auth/login", response_model=LoginResponse, include_in_schema=False)
 def login(body: LoginRequest, request: Request) -> LoginResponse:
     settings = request.app.state.settings

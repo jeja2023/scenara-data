@@ -43,7 +43,7 @@ def main() -> int:
         problems.append("缺少环境证据时，仓库门禁不能批准生产就绪状态")
     if maturity is not None and f"当前成熟度：`{maturity}`" not in readme:
         problems.append("README 中的成熟度与配置项 DECLARED_MATURITY 不一致")
-    if "责任团队：景枢数据" not in readme:
+    if "责任团队：scenara data" not in readme:
         problems.append("README 必须声明责任团队")
 
     lock = yaml.safe_load((ROOT / "configs/contracts/repository-contracts.yml").read_text(encoding="utf-8"))

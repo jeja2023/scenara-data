@@ -11,7 +11,7 @@ import {
 
 import { isSignedIn } from "./auth";
 
-const APP_TITLE = "景枢数据平台";
+const APP_TITLE = "scenara data";
 
 const routes = [
   {

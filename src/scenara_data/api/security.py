@@ -165,21 +165,17 @@ class RequestContextResolver:
         scheme, _, credential = request.headers.get("authorization", "").partition(" ")
         if scheme.lower() != "bearer" or not credential:
             raise AuthenticationError()
-        expected = self._settings.trusted_service_token
-        if expected and secrets.compare_digest(credential, expected):
+        if self._matches_service_token(credential):
             return None
         return authenticate_console_session(self._settings, credential)
 
     def _authenticate_service(self, request: Request) -> None:
         scheme, _, credential = request.headers.get("authorization", "").partition(" ")
-        expected = self._settings.trusted_service_token
-        if (
-            scheme.lower() != "bearer"
-            or not credential
-            or not expected
-            or not secrets.compare_digest(credential, expected)
-        ):
+        if scheme.lower() != "bearer" or not credential or not self._matches_service_token(credential):
             raise AuthenticationError()
+
+    def _matches_service_token(self, credential: str) -> bool:
+        return any(secrets.compare_digest(credential, expected) for expected in self._settings.trusted_service_tokens)
 
     def _scopes(self, request: Request) -> tuple[str, ...]:
         raw = self._required(request, SCOPES_HEADER, max_length=2048)

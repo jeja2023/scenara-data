@@ -206,7 +206,7 @@ useRefresh(refresh);
   <section class="page versions-page">
     <div class="hero-band panel" style="margin-bottom: 16px;">
       <div>
-        <p class="eyebrow">景枢数据平台 · 版本生命周期</p>
+        <p class="eyebrow">scenara data · 版本生命周期</p>
         <h2>版本治理与训练发布中枢</h2>
         <p class="hero-copy">
           当前归属数据集：

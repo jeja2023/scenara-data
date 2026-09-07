@@ -160,9 +160,9 @@ class DatasetVersionReference(ApiModel):
     """`@scenara/repository-contracts` 1.2.0 的 `dataset-version-input` 契约。"""
 
     schema_version: Literal["1.0"] = contracts.DATASET_VERSION_INPUT_SCHEMA_VERSION  # type: ignore[assignment]
-    dataset_id: str
-    version: str
-    manifest_uri: str = Field(min_length=1, max_length=2048)
+    dataset_id: str = Field(pattern=r"^[a-z][a-z0-9_.-]{1,127}$")
+    version: str = Field(pattern=r"^\d+\.\d+\.\d+(?:-[a-z0-9.-]+)?$")
+    manifest_uri: str = Field(pattern=r"^.+(?:@sha256:|#sha256=)[0-9a-f]{64}$", max_length=2048)
     manifest_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     lineage_refs: tuple[str, ...] = Field(min_length=1, max_length=100)
     authorization_id: str = Field(min_length=1, max_length=256)

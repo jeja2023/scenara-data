@@ -93,7 +93,7 @@ useRefresh(refresh);
   <section class="page operations-page">
     <div class="hero-band panel" style="margin-bottom: 16px;">
       <div>
-        <p class="eyebrow">景枢数据平台 · 运维与监控</p>
+        <p class="eyebrow">scenara data · 运维与监控</p>
         <h2>运维探针与服务健康度</h2>
         <p class="hero-copy">
           实时监测数据平台后端进程、外部数据库存储中间件就绪状态，并审计当前浏览器会话凭证。

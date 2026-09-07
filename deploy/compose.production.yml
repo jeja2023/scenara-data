@@ -19,6 +19,7 @@ services:
       SCENARA_DATA_S3_ACCESS_KEY_ID_FILE: /run/secrets/data_s3_access_key_id
       SCENARA_DATA_S3_SECRET_ACCESS_KEY_FILE: /run/secrets/data_s3_secret_access_key
       SCENARA_DATA_TRUSTED_SERVICE_TOKEN_FILE: /run/secrets/data_service_token
+      SCENARA_DATA_TRUSTED_SERVICE_TOKENS_FILE: /run/secrets/data_service_tokens
       SCENARA_DATA_REQUEST_CONTEXT_SIGNING_KEY_FILE: /run/secrets/data_context_signing_key
       SCENARA_DATA_CORE_EVENT_ENDPOINT: ${SCENARA_DATA_CORE_EVENT_ENDPOINT:?必须设置 HTTPS Core 事件端点}
       SCENARA_DATA_CORE_EVENT_TOKEN_FILE: /run/secrets/data_core_event_token
@@ -29,6 +30,7 @@ services:
       - data_s3_access_key_id
       - data_s3_secret_access_key
       - data_service_token
+      - data_service_tokens
       - data_context_signing_key
       - data_core_event_token
     networks: [platform]
@@ -99,6 +101,8 @@ secrets:
   data_s3_secret_access_key:
     external: true
   data_service_token:
+    external: true
+  data_service_tokens:
     external: true
   data_context_signing_key:
     external: true

@@ -1,5 +1,23 @@
 # 更新日志
 
+## [0.1.10] - 2026-09-07
+
+- **多受信服务凭据支持与安全加固**：
+  - 增加多服务通信凭证白名单支持（`SCENARA_DATA_TRUSTED_SERVICE_TOKENS` 与 `SCENARA_DATA_TRUSTED_SERVICE_TOKENS_FILE`），支持核心平台（Core）与模型平台（Model）等多微服务持有独立强随机 Token 访问 Data 内部 API；
+  - 加固启动配置校验，生产环境强制校验列表中全部服务 Token 长度均不少于 32 字符且禁止与上下文签名密钥冲突；
+  - 新增自动化测试 `test_additional_trusted_service_token_can_access_signed_context`，覆盖多服务凭证携带短时签名上下文调用的鉴权场景。
+- **共享基础设施集成与测试编排**：
+  - 新增 `deploy/compose.shared-test.yml` 与 `deploy/shared-test.env.example` 测试编排，支持 Data API 与 Outbox 直接接入 Core 仓库搭建的共享 PostgreSQL、Redis、MinIO 及 `scenara-platform` 网络，避免本地开发联调重复启动冗余容器；
+  - 完善生产环境编排 `deploy/compose.production.yml`，增加 `data_service_tokens` 外部 Secret 挂载支持，并在 `docs/DEPLOYMENT.md` 中同步部署说明。
+- **契约 Schema 与领域标识严苛约束**：
+  - 强化 `dataset-version-input` 契约（`DatasetVersionReference`）数据模型，对 `dataset_id`（合法字符及长度约束）、`version`（严格语义化版本号格式）与 `manifest_uri`（强制包含 SHA-256 摘要后缀）增加正则表达式校验，防止格式不合规或未锚定摘要的引用流出；
+  - 补充契约结构校验测试 `test_dataset_version_reference_keeps_published_identifier_constraints`。
+- **全局品牌命名规范与前端统一标识**：
+  - 统一前端控制台品牌标识为 `scenara data`，更新 `index.html` 页面标题、路由配置（`router.ts`）以及数据集管理、版本治理、难例导入和运维探针各页面的顶栏眉标与登录接口文档描述；
+  - 规范仓库 `pyproject.toml` 描述以及仓库质量门禁脚本 `scripts/repository_gate.py` 中的责任团队声明为 `scenara data`。
+- **环境变量与配置文件严格对齐**：
+  - 针对 `.env` 与 `.env.example` 进行逐行核对，补齐缺失的多受信服务凭证配置与注释，确保开发环境与上线模板 100% 结构一致。
+
 ## [0.1.9] - 2026-09-05
 
 - **多区域 Tab 切换布局**：全面重构总览页（Overview）、数据集管理（Datasets）、版本治理（Versions）、难例导入（HardSamples）与运维探针（Operations）等包含多区域的页面，统一采用顶部 Tab 选项卡分块切换展示，彻底解决多栏挤压和长垂直流堆叠问题。
