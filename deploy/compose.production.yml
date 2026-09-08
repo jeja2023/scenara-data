@@ -69,7 +69,7 @@ services:
       data-migrate:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "python", "-c", "import ssl, urllib.request; c=ssl.create_default_context(cafile='/run/tls/ca.crt'); urllib.request.urlopen('https://data.scenara.internal:8081/readyz', context=c, timeout=3)"]
+      test: ["CMD", "python", "-c", "import ssl, urllib.request; c=ssl.create_default_context(cafile='/run/tls/ca.crt'); urllib.request.urlopen('https://127.0.0.1:8081/readyz', context=c, timeout=3)"]
       interval: 30s
       timeout: 5s
       retries: 3
