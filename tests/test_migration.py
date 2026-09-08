@@ -12,6 +12,7 @@ from scenara_data.application.errors import InputValidationError
 from scenara_data.config import Settings
 from scenara_data.domain.models import JobStatus
 from scenara_data.ports.interfaces import RequestContext
+from scripts.migrate import database_url
 
 NOW = datetime(2026, 8, 16, 2, 0, tzinfo=UTC)
 CONTEXT = RequestContext(
@@ -24,6 +25,15 @@ CONTEXT = RequestContext(
     request_id="req-migration",
     trace_id="0123456789abcdef0123456789abcdef",
 )
+
+
+def test_database_url_reads_production_secret_file(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    secret_file = tmp_path / "database-url"
+    secret_file.write_text("postgresql://scenara_data:secret@postgres.scenara.internal/scenara_data?sslmode=verify-full\n")
+    monkeypatch.delenv("SCENARA_DATA_DATABASE_URL", raising=False)
+    monkeypatch.setenv("SCENARA_DATA_DATABASE_URL_FILE", str(secret_file))
+
+    assert database_url().startswith("postgresql://scenara_data:secret@postgres.scenara.internal")
 
 
 def test_invalid_migration_records_produce_a_persisted_idempotent_failure_report() -> None:

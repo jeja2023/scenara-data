@@ -5,14 +5,20 @@ import hashlib
 import os
 from pathlib import Path
 
-import psycopg
-
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATIONS = ROOT / "migrations"
 
 
 def database_url() -> str:
-    value = os.getenv("SCENARA_DATA_DATABASE_URL")
+    value = os.getenv("SCENARA_DATA_DATABASE_URL", "").strip()
+    file_name = os.getenv("SCENARA_DATA_DATABASE_URL_FILE", "").strip()
+    if value and file_name:
+        raise RuntimeError("SCENARA_DATA_DATABASE_URL and SCENARA_DATA_DATABASE_URL_FILE cannot both be configured")
+    if not value and file_name:
+        try:
+            value = Path(file_name).read_text(encoding="utf-8").strip()
+        except OSError as exc:
+            raise RuntimeError("无法读取 SCENARA_DATA_DATABASE_URL_FILE") from exc
     if not value:
         raise RuntimeError("必须配置 SCENARA_DATA_DATABASE_URL")
     return value
@@ -23,6 +29,8 @@ def digest(content: bytes) -> str:
 
 
 def apply_migrations() -> None:
+    import psycopg
+
     with psycopg.connect(database_url()) as connection, connection.cursor() as cursor:
         cursor.execute(
             """
@@ -54,6 +62,8 @@ def apply_migrations() -> None:
 
 
 def rollback(version: str) -> None:
+    import psycopg
+
     down_candidates = sorted(MIGRATIONS.glob(f"{version}_*.down.sql"))
     if len(down_candidates) != 1:
         raise RuntimeError(f"未找到迁移 {version} 的回滚脚本")
