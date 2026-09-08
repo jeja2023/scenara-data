@@ -62,6 +62,8 @@ services:
       start_period: 15s
 
   data-outbox:
+    healthcheck:
+      disable: true
     build:
       context: ..
       dockerfile: deploy/Dockerfile

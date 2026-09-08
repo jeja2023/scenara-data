@@ -86,6 +86,8 @@ services:
   data-outbox:
     image: ${SCENARA_DATA_IMAGE:?必须设置 SCENARA_DATA_IMAGE}
     command: ["python", "scripts/run_outbox.py"]
+    healthcheck:
+      disable: true
     read_only: true
     cap_drop: ["ALL"]
     security_opt: ["no-new-privileges:true"]
