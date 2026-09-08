@@ -28,7 +28,7 @@ docker compose -f deploy/compose.yml up --build
 
 生产只使用 [compose.production.yml](/D:/project/scenara-data/deploy/compose.production.yml)，不部署本仓库的 PostgreSQL、Redis 或 MinIO 容器。它要求：
 
-- 通过 `SCENARA_DATA_IMAGE` 提供已批准、不可变 digest 的镜像；
+- 通过 `SCENARA_DATA_IMAGE` 提供已批准 digest，或在当前单机生产环境提供完整 Git commit SHA tag 的本地镜像；
 - 通过外部 Docker/Kubernetes secret 挂载提供数据库 URL、S3 凭据、Core/Model 服务令牌白名单、Core 上下文签名密钥和事件令牌；
 - 通过受控平台网络连接 TLS PostgreSQL、Redis、S3 和 Core 网关，不向宿主机暴露端口；
 - API/Outbox 使用只读根文件系统、最小 Linux capability、`no-new-privileges`、资源限额、优雅停止和 `/readyz` 健康检查；
@@ -36,7 +36,7 @@ docker compose -f deploy/compose.yml up --build
 
 其中 `data_service_token` 为 Core→Data 凭据，`data_service_tokens` 为额外受信服务凭据（例如 Model→Data 凭据），多个值可用逗号或换行分隔；两类凭据都必须使用强随机值。
 
-发布前以 [production.env.example](/D:/project/scenara-data/deploy/production.env.example) 创建无密钥的部署变量文件，并先执行：
+发布前以 [production.env.example](/D:/project/scenara-data/deploy/production.env.example) 创建无密钥的部署变量文件。当前单机模式先运行 Core 仓库的 `deploy/scripts/build-local-production.sh` 构建三个本地镜像，再把脚本输出的 `SCENARA_DATA_IMAGE` 写入本文件。然后执行：
 
 ```powershell
 python scripts/production_gate.py

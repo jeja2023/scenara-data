@@ -15,7 +15,7 @@ def main() -> int:
 
     problems: list[str] = []
     required_production = (
-        "SCENARA_DATA_IMAGE:?必须设置带 digest",
+        "SCENARA_DATA_IMAGE:?必须设置 SCENARA_DATA_IMAGE",
         "@sha256:",
         "SCENARA_DATA_DEPLOYMENT_PROFILE: production",
         "SCENARA_DATA_DATABASE_URL_FILE",

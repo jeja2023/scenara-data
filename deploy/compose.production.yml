@@ -1,9 +1,10 @@
 # 生产编排基线：仅运行无状态服务，PostgreSQL、Redis、S3、TLS 与网关由受管基础设施提供。
-# 所有镜像必须是已批准的不可变 digest（例如 registry/scenara-data@sha256:<digest>）；
+# 标准发布使用已批准 digest（例如 registry/scenara-data@sha256:<digest>）；
+# 单机本地生产可使用完整 Git commit SHA tag（例如 scenara-data:<commit>）；
 # 所有 secret 必须由 Docker/Kubernetes 密钥挂载提供。
 services:
   data-migrate:
-    image: ${SCENARA_DATA_IMAGE:?必须设置带 digest 的 SCENARA_DATA_IMAGE}
+    image: ${SCENARA_DATA_IMAGE:?必须设置 SCENARA_DATA_IMAGE}
     command: ["python", "scripts/migrate.py"]
     read_only: true
     cap_drop: ["ALL"]
@@ -37,7 +38,7 @@ services:
     restart: "no"
 
   data-api:
-    image: ${SCENARA_DATA_IMAGE:?必须设置带 digest 的 SCENARA_DATA_IMAGE}
+    image: ${SCENARA_DATA_IMAGE:?必须设置 SCENARA_DATA_IMAGE}
     command:
       ["uvicorn", "scenara_data.api.app:app", "--host", "0.0.0.0", "--port", "8081", "--timeout-graceful-shutdown", "30"]
     read_only: true
@@ -69,7 +70,7 @@ services:
           memory: 256M
 
   data-outbox:
-    image: ${SCENARA_DATA_IMAGE:?必须设置带 digest 的 SCENARA_DATA_IMAGE}
+    image: ${SCENARA_DATA_IMAGE:?必须设置 SCENARA_DATA_IMAGE}
     command: ["python", "scripts/run_outbox.py"]
     read_only: true
     cap_drop: ["ALL"]
