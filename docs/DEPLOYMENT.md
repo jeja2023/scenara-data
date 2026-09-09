@@ -24,6 +24,36 @@ docker compose -f deploy/compose.yml up --build
 
 ## 生产部署基线
 
+## 独立数据管理模式
+
+当 Data 需要脱离 Core 直接管理数据集时，使用 `deploy/compose.standalone.yml`。该模式：
+
+- 使用 Data 自己的登录页面和 `SCENARA_DATA_CONSOLE_PASSWORD`；
+- Data 仍使用共享 PostgreSQL、Redis、MinIO 和 `scenara-platform` 网络；
+- 不要求 Core 事件端点和 Core 委托身份；
+- Dataset、Dataset Version、Sample、质量校验、发布和 Manifest 仍由 Data 负责；
+- 不删除或修改现有 Core/Data/Model 数据库。
+
+独立模式只适合数据治理和训练准备。最终模型发布、激活、灰度和 Core 在线推理仍由 Core 负责。
+
+构建包含 Data Web 前端的镜像：
+
+```bash
+docker build -f deploy/Dockerfile -t scenara-data:<git-commit-sha> .
+```
+
+创建独立登录密码 secret：
+
+```bash
+printf '%s' '<data-console-password>' | sudo docker secret create data_console_password -
+```
+
+然后使用 `deploy/compose.standalone.yml` 作为 Swarm Stack 部署。前端与 API 同源，访问：
+
+```text
+https://data.scenara.internal:8081/
+```
+
 对于当前测试数据环境，推荐使用 [compose.shared-test.yml](/D:/project/scenara-data/deploy/compose.shared-test.yml)：它只启动 Data API 和 Outbox，并连接 Core 仓库 `deploy/shared-infra/compose.yml` 创建的共享 PostgreSQL、Redis、MinIO 和 `scenara-platform` 网络。Data 仍保持独立 Compose 项目，不再重复启动自己的基础设施容器。
 
 生产只使用 [compose.production.yml](/D:/project/scenara-data/deploy/compose.production.yml)，不部署本仓库的 PostgreSQL、Redis 或 MinIO 容器。它要求：

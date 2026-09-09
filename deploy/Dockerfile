@@ -1,7 +1,19 @@
+FROM node:22-alpine AS frontend
+
+WORKDIR /frontend
+COPY frontend/data-console/package*.json ./
+RUN npm ci
+COPY frontend/data-console ./
+ARG VITE_DATA_API_BASE=
+ENV VITE_DATA_API_BASE=${VITE_DATA_API_BASE}
+RUN npm run build
+
 FROM python@sha256:57cd7c3a7a273101a6485ba99423ee568157882804b1124b4dd04266317710de
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    SCENARA_DATA_SERVE_FRONTEND=false \
+    SCENARA_DATA_FRONTEND_DIST=/app/frontend-dist
 
 WORKDIR /app
 
@@ -9,6 +21,7 @@ COPY pyproject.toml README.md ./
 COPY src ./src
 COPY migrations ./migrations
 COPY scripts ./scripts
+COPY --from=frontend /frontend/dist ./frontend-dist
 RUN python -m pip install --no-cache-dir ".[postgres,s3,redis,http]"
 
 RUN useradd --create-home --shell /usr/sbin/nologin scenara_data \

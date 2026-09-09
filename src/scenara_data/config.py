@@ -32,7 +32,7 @@ DEFAULT_CONSOLE_SCOPES = (
 MATURITY_LEVELS = ("planned", "seed", "implemented", "qualified", "production_ready")
 DECLARED_MATURITY = "implemented"
 RUNTIME_MODES = ("memory", "postgres")
-DEPLOYMENT_PROFILES = ("development", "production")
+DEPLOYMENT_PROFILES = ("development", "production", "standalone")
 INSECURE_SERVICE_TOKENS = frozenset(
     {DEFAULT_DEV_SERVICE_TOKEN, "scenara-data-compose-token", "scenara-data-compose-event-token"}
 )
@@ -81,6 +81,8 @@ class Settings:
     console_project_id: str = "default"
     console_scopes: tuple[str, ...] = DEFAULT_CONSOLE_SCOPES
     console_entitlements: tuple[str, ...] = field(default=("scenara.data",))
+    serve_frontend: bool = False
+    frontend_dist: Path = Path("/app/frontend-dist")
     cors_allow_origins: tuple[str, ...] = field(
         default=(
             "http://127.0.0.1:5173",
@@ -228,7 +230,7 @@ def load_settings() -> Settings:
     event_token = _secret("SCENARA_DATA_CORE_EVENT_TOKEN")
     if event_endpoint is not None and not event_token:
         raise RuntimeError("配置事件投递地址时必须同时配置 SCENARA_DATA_CORE_EVENT_TOKEN")
-    if runtime_mode == "postgres" and (not event_endpoint or not event_token):
+    if runtime_mode == "postgres" and deployment_profile != "standalone" and (not event_endpoint or not event_token):
         raise RuntimeError("PostgreSQL 运行模式要求配置 Core 事件投递地址和服务令牌")
 
     database_url = _secret("SCENARA_DATA_DATABASE_URL") or DEFAULT_DATABASE_URL
@@ -321,4 +323,6 @@ def load_settings() -> Settings:
         console_scopes=console_scopes,
         console_entitlements=_csv("SCENARA_DATA_CONSOLE_ENTITLEMENTS", ("scenara.data",)),
         cors_allow_origins=cors_origins,
+        serve_frontend=_bool("SCENARA_DATA_SERVE_FRONTEND", False),
+        frontend_dist=Path(os.getenv("SCENARA_DATA_FRONTEND_DIST", "/app/frontend-dist")),
     )

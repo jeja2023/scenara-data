@@ -14,8 +14,9 @@ from fastapi import FastAPI, Request, Response
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.staticfiles import StaticFiles
 
 from scenara_data import __version__, contracts
 from scenara_data.api.container import ApplicationContainer, build_container
@@ -201,6 +202,26 @@ def create_app(
 
     for router in ROUTERS:
         application.include_router(router)
+
+    if resolved_settings.serve_frontend and resolved_settings.frontend_dist.is_dir():
+        assets_dir = resolved_settings.frontend_dist / "assets"
+        if assets_dir.is_dir():
+            application.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+        @application.get("/", include_in_schema=False)
+        async def frontend_index() -> FileResponse:
+            return FileResponse(resolved_settings.frontend_dist / "index.html")
+
+        @application.get("/{path:path}", include_in_schema=False)
+        async def frontend_fallback(path: str) -> FileResponse:
+            candidate = (resolved_settings.frontend_dist / path).resolve()
+            try:
+                candidate.relative_to(resolved_settings.frontend_dist.resolve())
+            except ValueError:
+                return FileResponse(resolved_settings.frontend_dist / "index.html")
+            if candidate.is_file():
+                return FileResponse(candidate)
+            return FileResponse(resolved_settings.frontend_dist / "index.html")
 
     return application
 

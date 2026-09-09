@@ -49,3 +49,30 @@ def test_production_profile_rejects_plaintext_redis(monkeypatch: pytest.MonkeyPa
 
     with pytest.raises(RuntimeError, match="rediss"):
         load_settings()
+
+
+def test_standalone_profile_does_not_require_core_event_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
+    values = {
+        "SCENARA_DATA_DEPLOYMENT_PROFILE": "standalone",
+        "SCENARA_DATA_RUNTIME_MODE": "postgres",
+        "SCENARA_DATA_DATABASE_URL": "postgresql://data:password@db.example/scenara?sslmode=verify-full",
+        "SCENARA_DATA_REDIS_URL": "rediss://redis.example:6380/1",
+        "SCENARA_DATA_S3_ENDPOINT_URL": "https://s3.example",
+        "SCENARA_DATA_TRUSTED_SERVICE_TOKEN": "a" * 32,
+        "SCENARA_DATA_REQUEST_CONTEXT_SIGNING_KEY": "b" * 32,
+        "SCENARA_DATA_CONSOLE_PASSWORD": "console-password",
+        "SCENARA_DATA_SERVE_FRONTEND": "true",
+        "SCENARA_DATA_FRONTEND_DIST": "/tmp/scenara-data-frontend",
+        "SCENARA_DATA_CORS_ALLOW_ORIGINS": "https://data.example",
+    }
+    for name, value in values.items():
+        monkeypatch.setenv(name, value)
+    monkeypatch.delenv("SCENARA_DATA_CORE_EVENT_ENDPOINT", raising=False)
+    monkeypatch.delenv("SCENARA_DATA_CORE_EVENT_TOKEN", raising=False)
+
+    settings = load_settings()
+
+    assert settings.deployment_profile == "standalone"
+    assert settings.console_login_enabled
+    assert settings.serve_frontend
+    assert settings.core_event_endpoint is None
