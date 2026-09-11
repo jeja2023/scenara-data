@@ -258,6 +258,18 @@ def load_settings() -> Settings:
     console_login_enabled = _bool(
         "SCENARA_DATA_CONSOLE_LOGIN_ENABLED", deployment_profile != "production"
     )
+    console_password = _secret("SCENARA_DATA_CONSOLE_PASSWORD") or token
+    console_session_secret = _secret("SCENARA_DATA_CONSOLE_SESSION_SECRET") or token
+    if deployment_profile in {"production", "standalone"} and console_login_enabled:
+        if len(console_password) < 24 or console_password in trusted_tokens:
+            raise RuntimeError("工作台登录密码必须独立且至少包含 24 个字符")
+        if (
+            len(console_session_secret) < 32
+            or console_session_secret in trusted_tokens
+            or console_session_secret == context_signing_key
+            or console_session_secret == console_password
+        ):
+            raise RuntimeError("工作台会话签名密钥必须独立且至少包含 32 个字符")
     if deployment_profile == "production":
         if runtime_mode != "postgres":
             raise RuntimeError("生产部署必须使用 PostgreSQL 事实存储模式")
@@ -310,8 +322,8 @@ def load_settings() -> Settings:
         core_event_timeout_seconds=float(_positive_int("SCENARA_DATA_CORE_EVENT_TIMEOUT_SECONDS", 5)),
         allowed_source_systems=source_systems,
         console_username=console_username,
-        console_password=_secret("SCENARA_DATA_CONSOLE_PASSWORD") or token,
-        console_session_secret=_secret("SCENARA_DATA_CONSOLE_SESSION_SECRET") or token,
+        console_password=console_password,
+        console_session_secret=console_session_secret,
         console_session_ttl_seconds=_positive_int(
             "SCENARA_DATA_CONSOLE_SESSION_TTL_SECONDS", DEFAULT_CONSOLE_SESSION_TTL_SECONDS
         ),

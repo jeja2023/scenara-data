@@ -21,6 +21,7 @@ services:
       SCENARA_DATA_REQUEST_CONTEXT_SIGNING_KEY_FILE: /run/secrets/data_context_signing_key
       SCENARA_DATA_CONSOLE_LOGIN_ENABLED: "true"
       SCENARA_DATA_CONSOLE_PASSWORD_FILE: /run/secrets/data_console_password
+      SCENARA_DATA_CONSOLE_SESSION_SECRET_FILE: /run/secrets/data_console_session_secret
       SCENARA_DATA_SERVE_FRONTEND: "true"
       SCENARA_DATA_FRONTEND_DIST: /app/frontend-dist
       SCENARA_DATA_CORS_ALLOW_ORIGINS: ${SCENARA_DATA_CORS_ALLOW_ORIGINS:?必须设置 HTTPS Data 页面来源}
@@ -36,6 +37,7 @@ services:
       - data_service_tokens
       - data_context_signing_key
       - data_console_password
+      - data_console_session_secret
     networks: [platform]
     volumes:
       - ${SCENARA_PLATFORM_CERTS_DIR:?set SCENARA_PLATFORM_CERTS_DIR}/ca/ca.crt:/run/tls/ca.crt:ro
@@ -100,6 +102,8 @@ secrets:
   data_context_signing_key:
     external: true
   data_console_password:
+    external: true
+  data_console_session_secret:
     external: true
 
 networks:

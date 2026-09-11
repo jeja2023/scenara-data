@@ -25,7 +25,11 @@ services:
       SCENARA_DATA_CORE_EVENT_ENDPOINT: ${SCENARA_DATA_CORE_EVENT_ENDPOINT:?必须设置 HTTPS Core 事件端点}
       SCENARA_DATA_CORE_EVENT_TOKEN_FILE: /run/secrets/data_core_event_token
       SCENARA_DATA_CORS_ALLOW_ORIGINS: ${SCENARA_DATA_CORS_ALLOW_ORIGINS:?必须设置 HTTPS 门户来源}
-      SCENARA_DATA_CONSOLE_LOGIN_ENABLED: "false"
+      SCENARA_DATA_CONSOLE_LOGIN_ENABLED: ${SCENARA_DATA_CONSOLE_LOGIN_ENABLED:-false}
+      SCENARA_DATA_CONSOLE_PASSWORD_FILE: /run/secrets/data_console_password
+      SCENARA_DATA_CONSOLE_SESSION_SECRET_FILE: /run/secrets/data_console_session_secret
+      SCENARA_DATA_SERVE_FRONTEND: ${SCENARA_DATA_SERVE_FRONTEND:-false}
+      SCENARA_DATA_FRONTEND_DIST: /app/frontend-dist
       SSL_CERT_FILE: ${SCENARA_PLATFORM_CA_FILE:-/run/tls/ca.crt}
       REQUESTS_CA_BUNDLE: ${SCENARA_PLATFORM_CA_FILE:-/run/tls/ca.crt}
       AWS_CA_BUNDLE: ${SCENARA_PLATFORM_CA_FILE:-/run/tls/ca.crt}
@@ -38,6 +42,8 @@ services:
       - data_service_tokens
       - data_context_signing_key
       - data_core_event_token
+      - data_console_password
+      - data_console_session_secret
     networks: [platform]
     volumes:
       - ${SCENARA_PLATFORM_CERTS_DIR:?set SCENARA_PLATFORM_CERTS_DIR}/ca/ca.crt:/run/tls/ca.crt:ro
@@ -65,6 +71,8 @@ services:
     networks:
       platform:
         aliases: [data.scenara.internal]
+    ports:
+      - "${SCENARA_DATA_HTTP_PORT:-8081}:8081"
     depends_on:
       data-migrate:
         condition: service_completed_successfully
@@ -126,6 +134,10 @@ secrets:
   data_context_signing_key:
     external: true
   data_core_event_token:
+    external: true
+  data_console_password:
+    external: true
+  data_console_session_secret:
     external: true
 
 networks:
